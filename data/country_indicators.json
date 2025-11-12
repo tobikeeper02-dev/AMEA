@@ -1,0 +1,131 @@
+{
+  "Germany": {
+    "indicators": {
+      "gdp_growth": 1.8,
+      "inflation": 3.1,
+      "consumer_spending_index": 72,
+      "governance_index": 82,
+      "political_stability": 78,
+      "urbanization_rate": 77,
+      "median_age": 45.7,
+      "digital_adoption": 88,
+      "broadband_penetration": 91,
+      "co2_per_capita": 8.7,
+      "renewable_energy_share": 46,
+      "ease_of_doing_business": 79,
+      "regulatory_quality": 85,
+      "labor_cost_index": 102,
+      "political_risk": 18
+    },
+    "narratives": {
+      "news": [
+        "Coalition advances €30B green investment package targeting mobility and logistics.",
+        "New digital services act incentives accelerate fintech sandboxes in Berlin and Munich."
+      ],
+      "economic": [
+        "High purchasing power and stable export demand sustain premium positioning opportunities."
+      ],
+      "political": [
+        "Policy continuity despite coalition negotiations supports medium-term planning horizons."
+      ],
+      "social": [
+        "Aging population increases demand for convenience services and healthcare adjacencies."
+      ],
+      "technological": [
+        "Robust Industry 4.0 adoption fosters strong integration with logistics automation partners."
+      ],
+      "environmental": [
+        "Government incentives reward low-emission fleets and circular packaging pilots."
+      ],
+      "legal": [
+        "GDPR compliance remains stringent; data residency and consent orchestration are critical."      
+      ]
+    }
+  },
+  "France": {
+    "indicators": {
+      "gdp_growth": 2.1,
+      "inflation": 4.8,
+      "consumer_spending_index": 69,
+      "governance_index": 75,
+      "political_stability": 70,
+      "urbanization_rate": 81,
+      "median_age": 42.0,
+      "digital_adoption": 82,
+      "broadband_penetration": 88,
+      "co2_per_capita": 4.5,
+      "renewable_energy_share": 55,
+      "ease_of_doing_business": 76,
+      "regulatory_quality": 78,
+      "labor_cost_index": 95,
+      "political_risk": 24
+    },
+    "narratives": {
+      "news": [
+        "Government launches €1B agri-tech modernization fund focused on sustainable food chains.",
+        "Logistics strike activity moderates following new gig-economy protections."      
+      ],
+      "economic": [
+        "Fiscal support for households sustains mid-term consumption resilience."      
+      ],
+      "political": [
+        "Regulatory push for digital sovereignty introduces compliance pathways for data localization."      
+      ],
+      "social": [
+        "Consumer preference for omnichannel experiences is rising across major metros."      
+      ],
+      "technological": [
+        "Public-private partnerships accelerate AI experimentation in supply chain orchestration."      
+      ],
+      "environmental": [
+        "Nuclear-heavy energy mix keeps carbon intensity lower than EU peers."      
+      ],
+      "legal": [
+        "Gig worker legislation demands transparent contracting and benefits alignment."      
+      ]
+    }
+  },
+  "Spain": {
+    "indicators": {
+      "gdp_growth": 2.4,
+      "inflation": 3.7,
+      "consumer_spending_index": 63,
+      "governance_index": 70,
+      "political_stability": 66,
+      "urbanization_rate": 81,
+      "median_age": 44.0,
+      "digital_adoption": 76,
+      "broadband_penetration": 86,
+      "co2_per_capita": 5.0,
+      "renewable_energy_share": 42,
+      "ease_of_doing_business": 75,
+      "regulatory_quality": 72,
+      "labor_cost_index": 78,
+      "political_risk": 32
+    },
+    "narratives": {
+      "news": [
+        "Tourism recovery drives retail footfall, supporting rapid dark-store deployment.",
+        "Startup law introduces fresh tax incentives for international talent relocation."      
+      ],
+      "economic": [
+        "EU recovery funds continue flowing into infrastructure and digitalization programs."      
+      ],
+      "political": [
+        "Regional autonomy requires tailored government relations and localized stakeholder outreach."      
+      ],
+      "social": [
+        "Rapid e-commerce penetration reshapes grocery delivery expectations in urban centers."      
+      ],
+      "technological": [
+        "5G corridor investments unlock advanced last-mile experimentation opportunities."      
+      ],
+      "environmental": [
+        "Ambitious renewable rollout targets 74% clean power by 2030, favoring green operations."      
+      ],
+      "legal": [
+        "Labor reforms tighten contract flexibility, necessitating proactive HR compliance."      
+      ]
+    }
+  }
+}
