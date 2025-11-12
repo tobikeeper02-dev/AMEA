@@ -93,6 +93,11 @@ def _render_market_detail(analysis: ComparativeAnalysis):
                 for theme, action in market.turnaround_actions.items():
                     st.write(f"**{theme.title()}**: {action}")
 
+            if market.sources:
+                st.markdown("### Sources consulted")
+                for source in market.sources:
+                    st.write(f"- {source}")
+
 
 def _render_export_controls(analysis: ComparativeAnalysis):
     buffer = BytesIO()
@@ -114,6 +119,11 @@ def main():
         st.header("Engagement setup")
         company = st.text_input("Company name", value="Instacart")
         industry = st.text_input("Industry", value="Online grocery delivery")
+        use_case = st.selectbox(
+            "Primary use case",
+            options=["Market expansion", "Partnership scouting", "Investment diligence"],
+            help="Tailor outputs to market entry, partner evaluation, or investment screening contexts.",
+        )
         markets = st.multiselect(
             "Target markets",
             options=list(load_country_indicators().keys()),
@@ -131,12 +141,17 @@ def main():
         st.warning("Please provide a company name and select at least one market.")
         return
 
+    analysis = generate_market_analysis(company, industry, use_case, markets, priorities)
     analysis = generate_market_analysis(company, industry, markets, priorities)
 
     if best := analysis.best_market():
         st.success(
             f"{best.country} leads with a composite score of {best.score.composite}/100. Recommended entry mode: {best.entry_mode}."
         )
+
+    st.caption(
+        f"{analysis.company} · {analysis.industry} · Focus: {analysis.use_case}"
+    )
 
     _render_scorecard(analysis)
     _render_market_detail(analysis)

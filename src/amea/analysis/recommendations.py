@@ -5,6 +5,21 @@ from typing import Dict
 
 
 ENTRY_MODES = {
+    "market expansion": {
+        "high": "Greenfield investment with localized fulfillment network",
+        "medium": "Joint venture with established regional partner",
+        "low": "Lightweight partnership or distributor-led entry",
+    },
+    "partnership scouting": {
+        "high": "Strategic alliance with leading incumbents to unlock distribution scale",
+        "medium": "Pilot partnership with regional specialists before wider rollout",
+        "low": "Supplier benchmarking program to qualify potential collaborators",
+    },
+    "investment diligence": {
+        "high": "Pursue majority investment with integration roadmap and value-creation plan",
+        "medium": "Structure minority stake with governance rights and staged capital deployment",
+        "low": "Monitor through scouting network while addressing red-flag diligence gaps",
+    },
     "high": "Greenfield investment with localized fulfillment network",
     "medium": "Joint venture with established regional partner",
     "low": "Lightweight partnership or distributor-led entry",
@@ -20,6 +35,14 @@ TURNAROUND_PLAYBOOK = {
 }
 
 
+def select_entry_mode(composite_score: float, use_case: str) -> str:
+    key = use_case.lower()
+    library = ENTRY_MODES.get(key, ENTRY_MODES["market expansion"])
+    if composite_score >= 70:
+        return library["high"]
+    if composite_score >= 50:
+        return library["medium"]
+    return library["low"]
 def select_entry_mode(composite_score: float) -> str:
     if composite_score >= 70:
         return ENTRY_MODES["high"]

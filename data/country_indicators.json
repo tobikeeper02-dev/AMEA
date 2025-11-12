@@ -38,9 +38,14 @@
         "Government incentives reward low-emission fleets and circular packaging pilots."
       ],
       "legal": [
-        "GDPR compliance remains stringent; data residency and consent orchestration are critical."      
+        "GDPR compliance remains stringent; data residency and consent orchestration are critical."
       ]
-    }
+    },
+    "sources": [
+      "World Bank World Development Indicators (2023)",
+      "OECD Digital Economy Outlook (2023)",
+      "German Federal Ministry for Economic Affairs press release (2024)"
+    ]
   },
   "France": {
     "indicators": {
@@ -63,6 +68,32 @@
     "narratives": {
       "news": [
         "Government launches €1B agri-tech modernization fund focused on sustainable food chains.",
+        "Logistics strike activity moderates following new gig-economy protections."
+      ],
+      "economic": [
+        "Fiscal support for households sustains mid-term consumption resilience."
+      ],
+      "political": [
+        "Regulatory push for digital sovereignty introduces compliance pathways for data localization."
+      ],
+      "social": [
+        "Consumer preference for omnichannel experiences is rising across major metros."
+      ],
+      "technological": [
+        "Public-private partnerships accelerate AI experimentation in supply chain orchestration."
+      ],
+      "environmental": [
+        "Nuclear-heavy energy mix keeps carbon intensity lower than EU peers."
+      ],
+      "legal": [
+        "Gig worker legislation demands transparent contracting and benefits alignment."
+      ]
+    },
+    "sources": [
+      "INSEE Quarterly Economic Outlook (2024)",
+      "OECD Employment Outlook (2023)",
+      "French Ministry of Economy digital strategy brief (2024)"
+    ]
         "Logistics strike activity moderates following new gig-economy protections."      
       ],
       "economic": [
@@ -106,6 +137,320 @@
     "narratives": {
       "news": [
         "Tourism recovery drives retail footfall, supporting rapid dark-store deployment.",
+        "Startup law introduces fresh tax incentives for international talent relocation."
+      ],
+      "economic": [
+        "EU recovery funds continue flowing into infrastructure and digitalization programs."
+      ],
+      "political": [
+        "Regional autonomy requires tailored government relations and localized stakeholder outreach."
+      ],
+      "social": [
+        "Rapid e-commerce penetration reshapes grocery delivery expectations in urban centers."
+      ],
+      "technological": [
+        "5G corridor investments unlock advanced last-mile experimentation opportunities."
+      ],
+      "environmental": [
+        "Ambitious renewable rollout targets 74% clean power by 2030, favoring green operations."
+      ],
+      "legal": [
+        "Labor reforms tighten contract flexibility, necessitating proactive HR compliance."
+      ]
+    },
+    "sources": [
+      "Government of Spain Recovery Plan dashboard (2024)",
+      "World Economic Forum Digital Transformation Initiative (2023)",
+      "European Commission Country Report Spain (2024)"
+    ]
+  },
+  "United Kingdom": {
+    "indicators": {
+      "gdp_growth": 1.5,
+      "inflation": 4.1,
+      "consumer_spending_index": 70,
+      "governance_index": 80,
+      "political_stability": 74,
+      "urbanization_rate": 84,
+      "median_age": 40.5,
+      "digital_adoption": 90,
+      "broadband_penetration": 95,
+      "co2_per_capita": 5.5,
+      "renewable_energy_share": 43,
+      "ease_of_doing_business": 84,
+      "regulatory_quality": 82,
+      "labor_cost_index": 98,
+      "political_risk": 22
+    },
+    "narratives": {
+      "news": [
+        "UK unveils advanced manufacturing plan prioritizing AI-enabled supply chains.",
+        "Competition and Markets Authority intensifies scrutiny on digital platform mergers."
+      ],
+      "economic": [
+        "Services-driven economy maintains resilient consumer spend despite inflationary pressure."
+      ],
+      "political": [
+        "Post-Brexit trade policy emphasizes bilateral deals, requiring customs planning."
+      ],
+      "social": [
+        "High urban density in London and Manchester favors rapid delivery networks."
+      ],
+      "technological": [
+        "Leading open banking ecosystem facilitates fintech partnerships and data sharing."
+      ],
+      "environmental": [
+        "Net-zero mandates reward electrified fleets and sustainable packaging pilots."
+      ],
+      "legal": [
+        "Evolving Online Safety Bill may affect data retention and platform policies."
+      ]
+    },
+    "sources": [
+      "UK Office for National Statistics economic release (Q1 2024)",
+      "UK Department for Business & Trade Advanced Manufacturing Plan (2023)",
+      "CMA Annual Report (2023)"
+    ]
+  },
+  "Italy": {
+    "indicators": {
+      "gdp_growth": 1.3,
+      "inflation": 3.4,
+      "consumer_spending_index": 61,
+      "governance_index": 66,
+      "political_stability": 60,
+      "urbanization_rate": 71,
+      "median_age": 47.3,
+      "digital_adoption": 68,
+      "broadband_penetration": 80,
+      "co2_per_capita": 5.9,
+      "renewable_energy_share": 36,
+      "ease_of_doing_business": 72,
+      "regulatory_quality": 64,
+      "labor_cost_index": 85,
+      "political_risk": 38
+    },
+    "narratives": {
+      "news": [
+        "National Recovery and Resilience Plan funds logistics corridor upgrades across the north.",
+        "Food traceability regulations tightened to protect geographic indications."
+      ],
+      "economic": [
+        "SME-dominated landscape favors partnership-led market entry models."
+      ],
+      "political": [
+        "Fragmented coalition politics require careful stakeholder mapping at regional level."
+      ],
+      "social": [
+        "Strong cultural preference for fresh food necessitates localized assortments and sourcing."
+      ],
+      "technological": [
+        "Digitalization gap persists outside major cities, requiring omnichannel education."
+      ],
+      "environmental": [
+        "Circular economy incentives reward reuse of packaging and waste-to-value projects."
+      ],
+      "legal": [
+        "Stringent labor protections demand transparent scheduling and union engagement."
+      ]
+    },
+    "sources": [
+      "Banca d'Italia Economic Bulletin (2024)",
+      "Italian Ministry for Innovation NRRP update (2024)",
+      "European Commission Italy Country Report (2024)"
+    ]
+  },
+  "Netherlands": {
+    "indicators": {
+      "gdp_growth": 1.9,
+      "inflation": 3.2,
+      "consumer_spending_index": 74,
+      "governance_index": 85,
+      "political_stability": 82,
+      "urbanization_rate": 92,
+      "median_age": 42.7,
+      "digital_adoption": 92,
+      "broadband_penetration": 98,
+      "co2_per_capita": 9.5,
+      "renewable_energy_share": 33,
+      "ease_of_doing_business": 86,
+      "regulatory_quality": 88,
+      "labor_cost_index": 104,
+      "political_risk": 16
+    },
+    "narratives": {
+      "news": [
+        "Dutch government accelerates hydrogen corridor with Germany for heavy transport.",
+        "Amsterdam smart city initiative expands open data portals for mobility services."
+      ],
+      "economic": [
+        "Open trade orientation and logistics hubs reinforce re-export business models."
+      ],
+      "political": [
+        "Consensus-driven policymaking offers predictability but requires broad stakeholder buy-in."
+      ],
+      "social": [
+        "Digitally savvy population embraces subscription commerce and platform models."
+      ],
+      "technological": [
+        "High broadband coverage and IoT adoption enable real-time fulfillment orchestration."
+      ],
+      "environmental": [
+        "Strict emissions caps encourage zero-emission vehicles and circular supply chain pilots."
+      ],
+      "legal": [
+        "Advanced privacy regulation extends beyond GDPR, necessitating privacy-by-design solutions."
+      ]
+    },
+    "sources": [
+      "Statistics Netherlands (CBS) macroeconomic dashboard (2024)",
+      "Port of Rotterdam logistics outlook (2023)",
+      "Amsterdam Smart City program update (2024)"
+    ]
+  },
+  "United States": {
+    "indicators": {
+      "gdp_growth": 2.5,
+      "inflation": 3.9,
+      "consumer_spending_index": 85,
+      "governance_index": 74,
+      "political_stability": 62,
+      "urbanization_rate": 83,
+      "median_age": 38.5,
+      "digital_adoption": 89,
+      "broadband_penetration": 92,
+      "co2_per_capita": 14.7,
+      "renewable_energy_share": 21,
+      "ease_of_doing_business": 88,
+      "regulatory_quality": 77,
+      "labor_cost_index": 110,
+      "political_risk": 28
+    },
+    "narratives": {
+      "news": [
+        "Inflation Reduction Act incentives expand EV and clean logistics investments nationwide.",
+        "FTC issues new guidelines on antitrust scrutiny for large technology acquisitions."
+      ],
+      "economic": [
+        "Deep capital markets and venture ecosystem support rapid scale-up partnerships."
+      ],
+      "political": [
+        "State-level regulation variance requires localized compliance playbooks."
+      ],
+      "social": [
+        "Consumers expect hyper-personalized digital experiences and rapid delivery options."
+      ],
+      "technological": [
+        "Leading cloud and AI infrastructure enables experimentation with automation and data products."
+      ],
+      "environmental": [
+        "Carbon intensity remains high, but federal subsidies accelerate renewable adoption."
+      ],
+      "legal": [
+        "Data privacy patchwork across states necessitates differentiated consent strategies."
+      ]
+    },
+    "sources": [
+      "US Bureau of Economic Analysis GDP release (2024)",
+      "US Department of Energy Inflation Reduction Act fact sheet (2024)",
+      "Federal Trade Commission policy statement (2023)"
+    ]
+  },
+  "Canada": {
+    "indicators": {
+      "gdp_growth": 2.0,
+      "inflation": 3.0,
+      "consumer_spending_index": 73,
+      "governance_index": 87,
+      "political_stability": 84,
+      "urbanization_rate": 82,
+      "median_age": 41.7,
+      "digital_adoption": 85,
+      "broadband_penetration": 91,
+      "co2_per_capita": 14.2,
+      "renewable_energy_share": 65,
+      "ease_of_doing_business": 82,
+      "regulatory_quality": 83,
+      "labor_cost_index": 96,
+      "political_risk": 14
+    },
+    "narratives": {
+      "news": [
+        "Federal budget earmarks CAD 2B for clean tech adoption among SMEs.",
+        "Interprovincial trade barriers continue to ease through regulatory harmonization."
+      ],
+      "economic": [
+        "Strong middle-class spending power supports premium service offerings."
+      ],
+      "political": [
+        "Stable institutions and pro-immigration policies expand skilled labor availability."
+      ],
+      "social": [
+        "High household digital adoption supports hybrid retail and service delivery models."
+      ],
+      "technological": [
+        "Innovation superclusters promote collaboration across AI, agri-food, and clean tech."
+      ],
+      "environmental": [
+        "Carbon pricing scheme incentivizes low-emission operations and offsets."
+      ],
+      "legal": [
+        "Data residency requirements in sectors like healthcare and finance require localized hosting."
+      ]
+    },
+    "sources": [
+      "Statistics Canada economic dashboard (2024)",
+      "Government of Canada Budget 2024 clean tech chapter",
+      "Council of the Federation internal trade progress report (2023)"
+    ]
+  },
+  "Singapore": {
+    "indicators": {
+      "gdp_growth": 2.3,
+      "inflation": 3.3,
+      "consumer_spending_index": 78,
+      "governance_index": 95,
+      "political_stability": 90,
+      "urbanization_rate": 100,
+      "median_age": 42.1,
+      "digital_adoption": 96,
+      "broadband_penetration": 99,
+      "co2_per_capita": 8.4,
+      "renewable_energy_share": 5,
+      "ease_of_doing_business": 90,
+      "regulatory_quality": 94,
+      "labor_cost_index": 108,
+      "political_risk": 10
+    },
+    "narratives": {
+      "news": [
+        "Green Plan 2030 accelerates electrification incentives for logistics and mobility operators.",
+        "Monetary Authority expands digital banking licenses, opening fintech collaboration opportunities."
+      ],
+      "economic": [
+        "Regional headquarters hub offers access to ASEAN growth corridors with strong infrastructure."
+      ],
+      "political": [
+        "Pro-business regulatory regime enables rapid permitting and cross-border coordination."
+      ],
+      "social": [
+        "Highly urban population values premium convenience and trusted digital services."
+      ],
+      "technological": [
+        "Nationwide 5G rollout supports autonomous logistics and advanced analytics pilots."
+      ],
+      "environmental": [
+        "Space constraints make sustainability tied to resource efficiency and circular innovations."
+      ],
+      "legal": [
+        "Robust IP protection and data governance frameworks facilitate technology transfer."
+      ]
+    },
+    "sources": [
+      "Singapore Department of Statistics Yearbook (2023)",
+      "Singapore Green Plan 2030 progress report (2024)",
+      "Monetary Authority of Singapore financial services review (2023)"
+    ]
         "Startup law introduces fresh tax incentives for international talent relocation."      
       ],
       "economic": [

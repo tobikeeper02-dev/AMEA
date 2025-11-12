@@ -18,6 +18,7 @@ class MarketAnalysisResult:
     news: List[str]
     entry_mode: str
     turnaround_actions: Dict[str, str]
+    sources: List[str]
 
 
 @dataclass
@@ -25,6 +26,7 @@ class ComparativeAnalysis:
     company: str
     industry: str
     priorities: Dict[str, float]
+    use_case: str
     markets: List[MarketAnalysisResult]
 
     def best_market(self) -> MarketAnalysisResult | None:
@@ -53,6 +55,7 @@ def _parse_priorities(priority_input: List[str]) -> Dict[str, float]:
 def generate_market_analysis(
     company: str,
     industry: str,
+    use_case: str,
     markets: List[str],
     priorities: List[str],
 ) -> ComparativeAnalysis:
@@ -62,6 +65,18 @@ def generate_market_analysis(
     results: List[MarketAnalysisResult] = []
     for market in markets:
         indicator: CountryIndicator = dataset[market]
+        pestel = generate_pestel_from_indicators(
+            market,
+            indicator.indicators,
+            indicator.narratives,
+            company=company,
+            industry=industry,
+            priorities=weights,
+            use_case=use_case,
+        )
+        score = compute_market_score(indicator.indicators, weights)
+        news = get_recent_news_summaries(market)
+        entry_mode = select_entry_mode(score.composite, use_case)
         pestel = generate_pestel_from_indicators(market, indicator.indicators, indicator.narratives)
         score = compute_market_score(indicator.indicators, weights)
         news = get_recent_news_summaries(market)
@@ -75,6 +90,7 @@ def generate_market_analysis(
                 news=news,
                 entry_mode=entry_mode,
                 turnaround_actions=turnaround_actions,
+                sources=indicator.sources,
             )
         )
 
@@ -82,5 +98,6 @@ def generate_market_analysis(
         company=company,
         industry=industry,
         priorities=weights,
+        use_case=use_case,
         markets=results,
     )

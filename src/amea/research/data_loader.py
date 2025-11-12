@@ -18,6 +18,7 @@ class CountryIndicator:
     name: str
     indicators: Dict[str, float]
     narratives: Dict[str, List[str]]
+    sources: List[str]
 
 
 def load_country_indicators() -> Dict[str, CountryIndicator]:
@@ -31,6 +32,7 @@ def load_country_indicators() -> Dict[str, CountryIndicator]:
             name=country,
             indicators=payload.get("indicators", {}),
             narratives=payload.get("narratives", {}),
+            sources=payload.get("sources", []),
         )
     return result
 
