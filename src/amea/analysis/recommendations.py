@@ -20,6 +20,9 @@ ENTRY_MODES = {
         "medium": "Structure minority stake with governance rights and staged capital deployment",
         "low": "Monitor through scouting network while addressing red-flag diligence gaps",
     },
+    "high": "Greenfield investment with localized fulfillment network",
+    "medium": "Joint venture with established regional partner",
+    "low": "Lightweight partnership or distributor-led entry",
 }
 
 
@@ -40,6 +43,12 @@ def select_entry_mode(composite_score: float, use_case: str) -> str:
     if composite_score >= 50:
         return library["medium"]
     return library["low"]
+def select_entry_mode(composite_score: float) -> str:
+    if composite_score >= 70:
+        return ENTRY_MODES["high"]
+    if composite_score >= 50:
+        return ENTRY_MODES["medium"]
+    return ENTRY_MODES["low"]
 
 
 def build_turnaround_actions(dimension_scores: Dict[str, float]) -> Dict[str, str]:

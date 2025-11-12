@@ -20,7 +20,7 @@ Launch the interactive dashboard locally:
 streamlit run streamlit_app.py
 ```
 
-The app lets you configure the engagement (company, industry, target markets, strategic priorities, and desired use case), executes an automated research synthesis, and renders comparative analytics (PESTEL narratives, scoring radar, and recommended entry mode). Each market includes citation-style source lists so you can trace the input data. You can also download an auto-generated Word document summarizing the findings.
+The app lets you configure the engagement (company, industry, target markets, and strategic priorities), executes an automated research synthesis, and renders comparative analytics (PESTEL narratives, scoring radar, and recommended entry mode). You can also download an auto-generated Word document summarizing the findings.
 
 ## Architecture overview
 

@@ -56,6 +56,8 @@ def generate_pestel_from_indicators(
     pestel["Political"].append(
         context_clause
         + f"political institutions score {governance:.0f}/100 with stability at {stability:.0f}, supporting regulatory planning."
+        f"Political institutions score {governance:.0f}/100 with stability at {stability:.0f}, "
+        "suggesting a predictable policy environment."
     )
     pestel["Political"].extend(narratives.get("political", []))
 
@@ -66,6 +68,8 @@ def generate_pestel_from_indicators(
     pestel["Economic"].append(
         context_clause
         + f"GDP growth sits at {gdp_growth:.1f}% while inflation is {inflation:.1f}%, with consumer demand indexed at {consumer_spend:.0f}."
+        f"GDP growth sits at {gdp_growth:.1f}% while inflation is {inflation:.1f}%, "
+        f"with consumer demand indexed at {consumer_spend:.0f}."
     )
     pestel["Economic"].extend(narratives.get("economic", []))
 
@@ -79,6 +83,10 @@ def generate_pestel_from_indicators(
     pestel["Social"].append(
         context_clause
         + f"urbanization at {urbanization:.0f}% and median age {demographics:.1f} indicate a social readiness score near {social_score:.0f}/100."
+    social_score = normalize_indicator(urbanization, 0, 100) * 40 + normalize_indicator(100 - abs(40 - demographics), 0, 40) * 60
+    pestel["Social"].append(
+        f"Urbanization at {urbanization:.0f}% and median age {demographics:.1f} point to a "
+        f"social readiness score of {social_score:.0f}/100."
     )
     pestel["Social"].extend(narratives.get("social", []))
 
@@ -88,6 +96,7 @@ def generate_pestel_from_indicators(
     pestel["Technological"].append(
         context_clause
         + f"digital adoption is {digital:.0f}/100 with broadband penetration at {broadband:.0f}%."
+        f"Digital adoption is {digital:.0f}/100 with broadband penetration at {broadband:.0f}%."
     )
     pestel["Technological"].extend(narratives.get("technological", []))
 
@@ -97,6 +106,7 @@ def generate_pestel_from_indicators(
     pestel["Environmental"].append(
         context_clause
         + f"CO₂ footprint is {emissions:.1f} tons per capita with renewables covering {renewables:.0f}% of energy needs."
+        f"CO₂ footprint is {emissions:.1f} tons per capita with renewables covering {renewables:.0f}% of energy needs."
     )
     pestel["Environmental"].extend(narratives.get("environmental", []))
 
@@ -117,5 +127,9 @@ def generate_pestel_from_indicators(
                 0,
                 f"Primary client focus on {focus} suggests prioritizing {dimension.lower()} signals when shaping the go-to-market plan.",
             )
+
+        f"Ease of doing business is {ease_business:.0f}/100 and regulatory quality hits {regulatory:.0f}/100."
+    )
+    pestel["Legal"].extend(narratives.get("legal", []))
 
     return pestel

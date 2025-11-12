@@ -142,6 +142,7 @@ def main():
         return
 
     analysis = generate_market_analysis(company, industry, use_case, markets, priorities)
+    analysis = generate_market_analysis(company, industry, markets, priorities)
 
     if best := analysis.best_market():
         st.success(

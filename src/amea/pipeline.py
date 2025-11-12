@@ -77,6 +77,10 @@ def generate_market_analysis(
         score = compute_market_score(indicator.indicators, weights)
         news = get_recent_news_summaries(market)
         entry_mode = select_entry_mode(score.composite, use_case)
+        pestel = generate_pestel_from_indicators(market, indicator.indicators, indicator.narratives)
+        score = compute_market_score(indicator.indicators, weights)
+        news = get_recent_news_summaries(market)
+        entry_mode = select_entry_mode(score.composite)
         turnaround_actions = build_turnaround_actions(score.dimension_scores)
         results.append(
             MarketAnalysisResult(
