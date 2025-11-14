@@ -4,8 +4,9 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from functools import lru_cache
-from typing import Any, Dict, Iterable, List, Mapping, Sequence
+from typing import Any, Dict, Iterable, Mapping, Sequence
 
 from openai import OpenAI
 
@@ -20,7 +21,6 @@ PESTEL_DIMENSIONS = [
     "Environmental",
     "Legal",
 ]
-
 
 SESSION_API_KEY = "amea_openai_api_key"
 SESSION_BASE_URL = "amea_openai_base_url"
@@ -104,7 +104,7 @@ def _get_temperature() -> float:
 
 
 def _model_name() -> str:
-    return _resolve_config_value("AMEA_OPENAI_MODEL", session_key=SESSION_MODEL) or "gpt-4o-mini"
+    return _resolve_config_value("AMEA_OPENAI_MODEL", session_key=SESSION_MODEL) or "gpt-5-nano"
 
 
 @lru_cache(maxsize=1)
@@ -152,8 +152,8 @@ def _extract_json_structure(text: str) -> object:
     return json.loads(candidate)
 
 
-def _normalize_bullets(items: Iterable[object]) -> List[str]:
-    bullets: List[str] = []
+def _normalize_bullets(items: Iterable[object]) -> list[str]:
+    bullets: list[str] = []
     for item in items:
         if item is None:
             continue
@@ -176,144 +176,13 @@ def _format_priorities(priorities: Mapping[str, float]) -> str:
     return f"Client priorities ranked by emphasis: {formatted}."
 
 
-def _indicator_section(indicators: Mapping[str, float]) -> str:
-    if not indicators:
-        return "No quantitative indicators supplied."
-    return "\n".join(f"- {key}: {value}" for key, value in sorted(indicators.items()))
-
-
-def _narrative_section(narratives: Mapping[str, Sequence[str]]) -> str:
-    lines: List[str] = []
-    for dimension in PESTEL_DIMENSIONS:
-        key = dimension.lower()
-        hints = narratives.get(key, [])
-        if hints:
-            joined = "; ".join(hints)
-        else:
-            joined = "No additional curated notes provided."
-        lines.append(f"{dimension}: {joined}")
-    return "\n".join(lines)
-
-
-def generate_pestel_with_chatgpt(
-    *,
-    country: str,
-    company: str,
-    industry: str,
-    use_case: str,
-    priorities: Mapping[str, float],
-    indicators: Mapping[str, float],
-    narratives: Mapping[str, Sequence[str]],
-    company_brief: Mapping[str, Any] | None = None,
-) -> Dict[str, List[str]]:
-    """Request a PESTEL analysis from ChatGPT."""
-
-    client = _client()
-    brief_section = ""
-    if company_brief:
-        try:
-            brief_section = json.dumps(company_brief, ensure_ascii=False, indent=2)
-        except TypeError:
-            brief_section = str(company_brief)
-    prompt = (
-        "You are a senior strategy consultant supporting a market entry analysis.\n"
-        "Using the structured data below, produce a concise PESTEL summary with 2-3 bullets per dimension.\n"
-        "Each bullet should tie back to the quantitative indicators, curated notes, and the company-specific context provided.\n"
-        "Return valid JSON with the keys Political, Economic, Social, Technological, Environmental, Legal.\n"
-        "Do not include commentary outside of the JSON object.\n"
-        f"Country: {country}\n"
-        f"Company: {company or 'Client'}\n"
-        f"Industry: {industry or 'Not specified'}\n"
-        f"Engagement use case: {use_case or 'Market expansion'}\n"
-        f"{_format_priorities(priorities)}\n"
-        "Company intelligence:\n"
-        f"{brief_section}\n"
-        "Quantitative indicators:\n"
-        f"{_indicator_section(indicators)}\n"
-        "Curated talking points by dimension:\n"
-        f"{_narrative_section(narratives)}\n"
-        "Anchor every bullet in the realities of the specified industry and country, avoiding boilerplate language.\n"
-        "Highlight implications for the company’s go-to-market, operations, or risk posture.\n"
-        "Respond with concise, executive-ready language."
-    )
-
-    response = client.responses.create(
-        model=_model_name(),
-        input=prompt,
-        temperature=_get_temperature(),
-        max_output_tokens=1200,
-    )
-
-    text = getattr(response, "output_text", "")
-    if not text:
-        raise ValueError("ChatGPT returned an empty payload for PESTEL request")
-
-    raw = _extract_json_structure(text)
-    if not isinstance(raw, dict):
-        raise ValueError("ChatGPT PESTEL response was not a JSON object")
-
-    result: Dict[str, List[str]] = {}
-    for dimension in PESTEL_DIMENSIONS:
-        value = raw.get(dimension) or raw.get(dimension.lower()) or raw.get(dimension.upper())
-        if value is None:
-            result[dimension] = []
-        elif isinstance(value, list):
-            result[dimension] = _normalize_bullets(value)
-        else:
-            result[dimension] = _normalize_bullets([value])
-
-    return result
-
-
-def summarize_news_with_chatgpt(
-    *,
-    country: str,
-    news_bullets: Sequence[str],
-    sources: Sequence[str] | None = None,
-) -> List[str]:
-    """Ask ChatGPT to rewrite curated headlines into fresh highlights."""
-
-    if not news_bullets:
-        return []
-
-    client = _client()
-    source_section = "\n".join(f"- {item}" for item in sources or [])
-    prompt = (
-        "You help consultants synthesize market signals.\n"
-        "Rewrite the provided news bullets into 2-3 crisp highlights that a C-suite audience can skim quickly.\n"
-        "Keep all statements factual and grounded in the supplied notes.\n"
-        "Return a JSON array of strings (each string is one bullet).\n"
-        f"Country: {country}\n"
-        "Curated notes:\n"
-        + "\n".join(f"- {bullet}" for bullet in news_bullets)
-    )
-    if source_section:
-        prompt += "\nRelevant sources:\n" + source_section
-
-    response = client.responses.create(
-        model=_model_name(),
-        input=prompt,
-        temperature=_get_temperature(),
-        max_output_tokens=600,
-    )
-
-    text = getattr(response, "output_text", "")
-    if not text:
-        raise ValueError("ChatGPT returned an empty payload for news summary")
-
-    raw = _extract_json_structure(text)
-    candidates: Sequence[object]
-    if isinstance(raw, dict):
-        candidates = raw.get("bullets") or raw.get("highlights") or []
-    elif isinstance(raw, list):
-        candidates = raw
-    else:
-        raise ValueError("ChatGPT news response was not a JSON list")
-
-    bullets = _normalize_bullets(candidates)
-    if not bullets:
-        raise ValueError("ChatGPT news response did not contain usable bullets")
-    return bullets
+def _format_company_brief(company_brief: Mapping[str, Any] | None) -> str:
+    if not company_brief:
+        return "No prior context captured."
+    try:
+        return json.dumps(company_brief, ensure_ascii=False, indent=2)
+    except TypeError:
+        return str(company_brief)
 
 
 def generate_company_market_brief(
@@ -354,7 +223,7 @@ def generate_company_market_brief(
     if not isinstance(raw, dict):
         raise ValueError("ChatGPT company briefing response was not a JSON object")
 
-    def _normalize_section(key: str) -> List[str]:
+    def _normalize_section(key: str) -> list[str]:
         value = raw.get(key) or raw.get(key.lower()) or raw.get(key.replace("_", ""))
         if value is None:
             return []
@@ -384,11 +253,95 @@ def generate_company_market_brief(
     return result
 
 
+def generate_market_snapshot(
+    *,
+    country: str,
+    company: str,
+    industry: str,
+    use_case: str,
+    priorities: Mapping[str, float],
+    company_brief: Mapping[str, Any] | None = None,
+) -> Dict[str, Any]:
+    """Ask ChatGPT for a market snapshot tailored to the engagement."""
+
+    client = _client()
+    brief_section = _format_company_brief(company_brief)
+    priorities_sentence = _format_priorities(priorities)
+
+    prompt = (
+        "You are AMEA, an AI consultant building a market entry pack.\n"
+        "Leverage domain knowledge, recent macro trends (through 2024), and logical inference to draft country-specific insights.\n"
+        "Do NOT reuse canned or placeholder text—tailor every point to the company, industry, and country.\n"
+        "If concrete datapoints are uncertain, note the assumption explicitly rather than fabricating figures.\n"
+        "Return STRICT JSON with this structure:\n"
+        "{"
+        "  \"pestel\": {dimension -> array of 2-3 bullets},\n"
+        "  \"scores\": {\"composite\": number 0-100, \"dimensions\": {dimension -> number 0-100}},\n"
+        "  \"recent_signals\": array of 2-3 bullets tying to news, policy, or demand shifts,\n"
+        "  \"entry_mode\": string,\n"
+        "  \"turnaround_actions\": object mapping focus areas to mitigation actions (omit keys if none),\n"
+        "  \"sources\": array of citations or reputable references (title + year + URL when available).\n"
+        "}\n"
+        "Dimension keys for scores should include: growth, cost_efficiency, risk, sustainability, digital.\n"
+        "Ensure PESTEL keys are exactly: Political, Economic, Social, Technological, Environmental, Legal.\n"
+        "Context to ground your analysis:\n"
+        f"Country: {country}\n"
+        f"Company: {company or 'Client'}\n"
+        f"Industry: {industry or 'Not specified'}\n"
+        f"Engagement goal: {use_case or 'Market expansion'}\n"
+        f"{priorities_sentence}\n"
+        "Company intelligence (JSON):\n"
+        f"{brief_section}\n"
+        "Deliver differentiated, decision-useful insights relevant for this exact engagement."
+    )
+
+    response = client.responses.create(
+        model=_model_name(),
+        input=prompt,
+        temperature=_get_temperature(),
+        max_output_tokens=1600,
+    )
+
+    text = getattr(response, "output_text", "")
+    if not text:
+        raise ValueError("ChatGPT returned an empty payload for market snapshot")
+
+    raw = _extract_json_structure(text)
+    if not isinstance(raw, dict):
+        raise ValueError("ChatGPT market snapshot response was not a JSON object")
+
+    return raw
+
+
+def run_chatgpt_healthcheck() -> Dict[str, Any]:
+    """Perform a lightweight API call to verify connectivity."""
+
+    start = time.perf_counter()
+    client = _client()
+    response = client.responses.create(
+        model=_model_name(),
+        input="Return JSON {\"status\": \"ok\", \"echo\": \"AMEA\"}.",
+        temperature=0.0,
+        max_output_tokens=50,
+    )
+    latency_ms = (time.perf_counter() - start) * 1000
+    text = getattr(response, "output_text", "")
+    payload = _extract_json_structure(text)
+    if not isinstance(payload, dict) or payload.get("status") != "ok":
+        raise ValueError("ChatGPT health check did not return the expected payload")
+
+    return {
+        "status": payload.get("status", "unknown"),
+        "echo": payload.get("echo"),
+        "latency_ms": round(latency_ms, 1),
+        "model": getattr(response, "model", _model_name()),
+    }
+
+
 __all__ = [
     "ChatGPTNotConfiguredError",
     "generate_company_market_brief",
-    "generate_pestel_with_chatgpt",
-    "summarize_news_with_chatgpt",
+    "generate_market_snapshot",
     "is_chatgpt_configured",
+    "run_chatgpt_healthcheck",
 ]
-

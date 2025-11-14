@@ -19,8 +19,11 @@ if str(SRC_PATH) not in sys.path:
 
 from amea.pipeline import ComparativeAnalysis, generate_market_analysis
 from amea.report.exporters import export_to_docx
-from amea.research.data_loader import load_country_indicators
-from amea.research.llm import is_chatgpt_configured
+from amea.research.llm import (
+    ChatGPTNotConfiguredError,
+    is_chatgpt_configured,
+    run_chatgpt_healthcheck,
+)
 
 st.set_page_config(page_title="AMEA - Market Entry Copilot", layout="wide")
 
@@ -29,11 +32,13 @@ def _render_header():
     st.title("AMEA – Automated Market Entry Analysis")
     st.markdown(
         """
-        Combine curated macro indicators and AI reasoning to compare markets, synthesize insights,
-        and export a board-ready report in minutes.
+        This workspace collects your engagement context and routes it directly through
+        OpenAI's ChatGPT API (gpt-5-nano by default) to synthesize tailored PESTEL narratives,
+        scores, and recommendations. No static indicator library is used—every run is freshly
+        generated for the company, industry, and markets you specify.
         """
     )
-    st.caption("PESTEL narratives and news highlights leverage OpenAI ChatGPT when credentials are configured.")
+    st.caption("All qualitative outputs come from live ChatGPT responses. Provide an API key to activate them.")
 
 
 def _priority_selector() -> List[str]:
@@ -48,19 +53,26 @@ def _priority_selector() -> List[str]:
 
 
 def _render_scorecard(analysis: ComparativeAnalysis):
+    if not analysis.markets:
+        st.info("Run an analysis to populate the scorecard.")
+        return
+
     data = []
     for market in analysis.markets:
         row = {"Country": market.country, "Composite score": market.score.composite}
-        row.update({key.title(): value for key, value in market.score.dimension_scores.items()})
+        for key, value in market.score.dimension_scores.items():
+            row[key.replace("_", " ").title()] = value
         data.append(row)
 
     frame = pd.DataFrame(data)
     st.subheader("Comparative scorecard")
     st.dataframe(frame.set_index("Country"))
 
-    if len(analysis.markets) > 0:
+    radar_data = frame.drop(columns=["Composite score"], errors="ignore")
+    if radar_data.shape[1] > 0:
+        melted = radar_data.reset_index().melt(id_vars="Country", var_name="Dimension", value_name="Score")
         fig = px.line_polar(
-            frame.melt(id_vars=["Country", "Composite score"], var_name="Dimension", value_name="Score"),
+            melted,
             r="Score",
             theta="Dimension",
             color="Country",
@@ -72,10 +84,15 @@ def _render_scorecard(analysis: ComparativeAnalysis):
 
 
 def _render_market_detail(analysis: ComparativeAnalysis):
+    if not analysis.markets:
+        return
+
     for market in analysis.markets:
         with st.expander(f"{market.country} deep-dive", expanded=market == analysis.best_market()):
-            st.markdown(f"**Opportunity score:** {market.score.composite}/100")
-            st.markdown(f"**Recommended entry mode:** {market.entry_mode}")
+            score_text = f"{market.score.composite}/100" if market.score.composite else "Not scored"
+            st.markdown(f"**Opportunity score:** {score_text}")
+            if market.entry_mode:
+                st.markdown(f"**Recommended entry mode:** {market.entry_mode}")
 
             if market.news:
                 st.markdown("### Recent signals")
@@ -88,21 +105,27 @@ def _render_market_detail(analysis: ComparativeAnalysis):
             for index, (dimension, bullets) in enumerate(dimensions):
                 with cols[index % 3]:
                     st.markdown(f"**{dimension}**")
-                    for bullet in bullets:
-                        st.write(f"- {bullet}")
+                    if bullets:
+                        for bullet in bullets:
+                            st.write(f"- {bullet}")
+                    else:
+                        st.caption("No insights returned.")
 
             if market.turnaround_actions:
                 st.markdown("### Risk mitigations")
                 for theme, action in market.turnaround_actions.items():
-                    st.write(f"**{theme.title()}**: {action}")
+                    st.write(f"**{str(theme).title()}**: {action}")
 
             if market.sources:
-                st.markdown("### Sources consulted")
+                st.markdown("### Sources cited")
                 for source in market.sources:
                     st.write(f"- {source}")
 
 
 def _render_export_controls(analysis: ComparativeAnalysis):
+    if not analysis.markets:
+        return
+
     buffer = BytesIO()
     export_to_docx(analysis, Path("/tmp/amea_report.docx"))
     with open("/tmp/amea_report.docx", "rb") as doc_handle:
@@ -145,6 +168,12 @@ def _render_company_context(analysis: ComparativeAnalysis):
                 st.write(f"- {bullet}")
 
 
+def _parse_market_list(raw: str) -> List[str]:
+    if not raw:
+        return []
+    return [item.strip() for item in raw.split(",") if item.strip()]
+
+
 def main():
     _render_header()
 
@@ -176,11 +205,11 @@ def main():
         elif "amea_openai_base_url" in st.session_state:
             st.session_state.pop("amea_openai_base_url")
 
-        model_default = st.session_state.get("amea_openai_model") or os.getenv("AMEA_OPENAI_MODEL", "gpt-4o-mini")
+        model_default = st.session_state.get("amea_openai_model") or os.getenv("AMEA_OPENAI_MODEL", "gpt-5-nano")
         model_input = st.text_input(
             "Model name",
             value=model_default,
-            help="Specify the ChatGPT model to use (defaults to gpt-4o-mini).",
+            help="Specify the ChatGPT model to use (defaults to gpt-5-nano).",
         )
         if model_input:
             st.session_state["amea_openai_model"] = model_input.strip()
@@ -208,12 +237,23 @@ def main():
         )
         st.session_state["amea_openai_temperature"] = temperature_input
 
-        if is_chatgpt_configured():
-            st.success("ChatGPT integration active for narratives and news highlights.")
-        else:
-            st.warning(
-                "ChatGPT integration inactive. Provide an API key above or set OPENAI_API_KEY to enable AI-generated insights."
-            )
+        col_status, col_health = st.columns([2, 1])
+        with col_status:
+            if is_chatgpt_configured():
+                st.success("ChatGPT integration active for all narratives and scores.")
+            else:
+                st.warning(
+                    "ChatGPT integration inactive. Provide an API key above or set OPENAI_API_KEY to enable AI-generated insights."
+                )
+        with col_health:
+            if st.button("Test API"):
+                try:
+                    result = run_chatgpt_healthcheck()
+                    st.success(f"Status {result['status']} · {result['model']} · {result['latency_ms']} ms")
+                except ChatGPTNotConfiguredError as exc:
+                    st.error(str(exc))
+                except Exception as exc:  # noqa: BLE001
+                    st.error(f"Health check failed: {exc}")
 
         st.divider()
         company = st.text_input("Company name", value="Instacart")
@@ -223,11 +263,12 @@ def main():
             options=["Market expansion", "Partnership scouting", "Investment diligence"],
             help="Tailor outputs to market entry, partner evaluation, or investment screening contexts.",
         )
-        markets = st.multiselect(
-            "Target markets",
-            options=list(load_country_indicators().keys()),
-            default=["Germany", "France"],
+        markets_raw = st.text_area(
+            "Target markets (comma separated)",
+            value="Germany, France",
+            help="List the countries you want ChatGPT to analyse, separated by commas.",
         )
+        markets = _parse_market_list(markets_raw)
         priorities = _priority_selector()
         st.file_uploader("Upload internal context (optional)")
         run = st.button("Run analysis", type="primary")
@@ -237,18 +278,27 @@ def main():
         return
 
     if not company or not markets:
-        st.warning("Please provide a company name and select at least one market.")
+        st.warning("Please provide a company name and at least one market (comma separated).")
         return
 
-    analysis = generate_market_analysis(company, industry, use_case, markets, priorities)
+    try:
+        analysis = generate_market_analysis(company, industry, use_case, markets, priorities)
+    except ChatGPTNotConfiguredError as exc:
+        st.error(str(exc))
+        return
+    except Exception as exc:  # noqa: BLE001
+        st.error(f"ChatGPT call failed: {exc}")
+        return
 
     if best := analysis.best_market():
-        st.success(
-            f"{best.country} leads with a composite score of {best.score.composite}/100. Recommended entry mode: {best.entry_mode}."
+        leading = (
+            f"{best.country} leads with a composite score of {best.score.composite}/100." if best.score.composite else ""
         )
+        suffix = f" Recommended entry mode: {best.entry_mode}." if best.entry_mode else ""
+        st.success(f"{leading}{suffix}")
 
     st.caption(
-        f"{analysis.company} · {analysis.industry} · Focus: {analysis.use_case}"
+        f"{analysis.company} · {analysis.industry or 'Industry not specified'} · Focus: {analysis.use_case}"
     )
 
     _render_company_context(analysis)

@@ -1,6 +1,8 @@
 # AMEA
 
-AMEA (Automated Market Entry Analysis) is an AI-augmented research assistant that helps consultants and students evaluate international expansion opportunities. The current prototype ships with a Streamlit dashboard, heuristic analysis engine, and report export workflow so you can compare markets in minutes.
+AMEA (Automated Market Entry Analysis) is an AI-first research assistant that builds market-entry briefings directly from OpenAI's
+ChatGPT Responses API. The Streamlit dashboard collects your engagement inputs, calls ChatGPT for every insight, and assembles a
+board-ready report without relying on any stored indicator library.
 
 ## Getting started
 
@@ -22,48 +24,52 @@ streamlit run streamlit_app.py
 
 ### Enable ChatGPT-powered narratives
 
-The assistant can call OpenAI's ChatGPT to synthesize PESTEL narratives and rewrite recent news highlights. Provide credentials before launching the Streamlit app, or paste them directly into the sidebar controls once the app is running.
+Every qualitative and scoring output now comes from ChatGPT. Provide credentials before launching the Streamlit app, or paste them
+directly into the sidebar controls once the app is running.
 
 **Environment setup (optional but recommended for local development):**
 
 ```bash
 export OPENAI_API_KEY="your-openai-key"
 # Optional overrides
-export AMEA_OPENAI_MODEL="gpt-4o-mini"        # or another Responses API model
-export AMEA_OPENAI_TEMPERATURE="0.2"          # keep outputs focused
+export AMEA_OPENAI_MODEL="gpt-5-nano"        # default model
+export AMEA_OPENAI_TEMPERATURE="0.2"        # keep outputs focused
 ```
 
-**In-app configuration:** Use the **OpenAI configuration** section in the Streamlit sidebar to paste your API key, set a custom base URL (for Azure/OpenAI proxies), adjust the model, and tweak temperature. The sidebar status indicator will confirm when ChatGPT is active.
+**In-app configuration:** Use the **OpenAI configuration** section in the Streamlit sidebar to paste your API key, set a custom
+base URL (for Azure/OpenAI proxies), adjust the model, and tweak temperature. The sidebar status indicator confirms when ChatGPT
+is active, and the **Test API** button runs a quick health check so you can verify connectivity without leaving the app.
 
-The integration automatically falls back to the packaged heuristic content if the credentials are missing or an API error occurs.
+If the key is missing the app will halt—there is no longer a heuristic or cached fallback.
 
-The app lets you configure the engagement (company, industry, target markets, strategic priorities, and desired use case), executes an automated research synthesis, and renders comparative analytics (PESTEL narratives, scoring radar, and recommended entry mode). Each market includes citation-style source lists so you can trace the input data. You can also download an auto-generated Word document summarizing the findings.
+### What the workflow does
 
-### Company- and industry-aware insights
+1. **Engagement capture** – you provide the company, industry, strategic priorities, use case, and comma-separated country list.
+2. **Company brief generation** – ChatGPT produces a tailored summary of the client’s business model, differentiators, and
+   watchpoints aligned to your priorities.
+3. **Market-specific calls** – for each country, ChatGPT returns PESTEL bullets, quantitative-style scores, recent signals,
+   entry guidance, mitigation ideas, and source citations. Every run is generated from scratch.
+4. **Visualisation & export** – the Streamlit UI renders scorecards, radar charts, detailed PESTEL tables, and offers a
+   DOCX download that mirrors the on-screen content.
 
-When ChatGPT is enabled, AMEA first asks the model to craft a company and industry brief that captures business-model nuances, regulatory watchpoints, and strategic levers tied to your stated priorities. That context is injected into each country’s PESTEL request so the resulting commentary addresses the specific organisation and sector rather than repeating generic guidance. The Streamlit dashboard surfaces this brief in a dedicated “Company & industry intelligence” card, and the DOCX export mirrors the same content at the top of the report.
-
-If ChatGPT is unavailable, AMEA still generates a deterministic company brief based on the provided inputs so the rest of the pipeline has a clear strategic frame of reference.
+Because everything is generated live, rerunning the same scenario can surface refreshed commentary as macro conditions evolve.
 
 ## Architecture overview
 
 ```
 AMEA/
-├── streamlit_app.py         # Streamlit front-end
-├── data/
-│   └── country_indicators.json  # Curated macro indicators and narratives
+├── streamlit_app.py         # Streamlit front-end with ChatGPT status + health check
 └── src/amea/
-    ├── pipeline.py              # Orchestrates research → analysis → export
-    ├── research/                # Data access layer (API stubs, loaders)
-    ├── analysis/                # Scoring, PESTEL heuristics, recommendations
-    └── report/                  # Export utilities (DOCX, future formats)
+    ├── pipeline.py          # Orchestrates company brief + per-market ChatGPT calls
+    ├── analysis/scoring.py  # Data structures for model-returned scores
+    ├── research/llm.py      # OpenAI client helpers and prompt builders
+    └── report/              # Export utilities (DOCX)
 ```
 
-The current version uses packaged indicator data to simulate automated research. These modules are structured so they can be swapped with live API integrations (World Bank, IMF, etc.) and generative AI calls in future iterations.
+No offline datasets are bundled—the assistant depends entirely on the ChatGPT API responses you authorise.
 
 ## Roadmap
 
-* Integrate real-time data sources and LLM-generated context.
-* Expand framework coverage (Porter’s Five Forces, VRIO) and factor weighting.
-* Add FastAPI backend for programmatic access and authentication.
-* Support additional export formats (PDF, PPTX) and richer visualizations.
+* Add optional retrieval plugins (news search, World Bank APIs) to feed verified facts into the prompts.
+* Extend the export pipeline with PPTX and HTML dashboards.
+* Introduce collaborative annotations so teams can capture client feedback directly in the workspace.

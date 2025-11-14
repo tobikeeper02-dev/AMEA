@@ -5,11 +5,12 @@ import logging
 from dataclasses import dataclass
 from typing import Dict, List
 
-from .analysis.pestel import generate_pestel_from_indicators
-from .analysis.recommendations import build_turnaround_actions, select_entry_mode
-from .analysis.scoring import ScoreBreakdown, compute_market_score
-from .research.data_loader import CountryIndicator, get_recent_news_summaries, load_country_indicators
-from .research.llm import ChatGPTNotConfiguredError, generate_company_market_brief
+from .analysis.scoring import ScoreBreakdown
+from .research.llm import (
+    ChatGPTNotConfiguredError,
+    generate_company_market_brief,
+    generate_market_snapshot,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -53,81 +54,70 @@ PRIORITY_MAP = {
 def _parse_priorities(priority_input: List[str]) -> Dict[str, float]:
     weights = {PRIORITY_MAP.get(item, item): 1.0 for item in priority_input}
     if not weights:
-        # Default to equal emphasis on growth and risk mitigation
         weights = {"growth": 1.0, "risk": 1.0}
     return weights
 
 
-def _fallback_company_brief(
-    company: str,
-    industry: str,
-    use_case: str,
-    priorities: Dict[str, float],
-) -> Dict[str, object]:
-    """Generate a deterministic context pack when ChatGPT is unavailable."""
+def _sanitize_pestel(payload: Dict[str, object]) -> Dict[str, List[str]]:
+    result: Dict[str, List[str]] = {}
+    for dimension in ["Political", "Economic", "Social", "Technological", "Environmental", "Legal"]:
+        value = payload.get(dimension) or payload.get(dimension.lower()) if isinstance(payload, dict) else None
+        bullets: List[str] = []
+        if isinstance(value, list):
+            bullets = [str(item).strip() for item in value if str(item).strip()]
+        elif isinstance(value, str):
+            bullets = [value.strip()] if value.strip() else []
+        result[dimension] = bullets
+    return result
 
-    display_company = company or "The client"
-    sector = industry or "target industry"
-    agenda = use_case or "market expansion"
-    priority_sentence = "balanced objectives"
-    if priorities:
-        ordered = sorted(priorities.items(), key=lambda item: item[1], reverse=True)
-        priority_sentence = ", ".join(f"{name.replace('_', ' ')}" for name, _ in ordered[:3])
 
-    summary = (
-        f"{display_company} is preparing for {agenda.lower()} in the {sector.lower()} space, "
-        f"with emphasis on {priority_sentence}."
-    )
+def _sanitize_turnaround_actions(raw: object) -> Dict[str, str]:
+    if not isinstance(raw, dict):
+        return {}
+    sanitized: Dict[str, str] = {}
+    for key, value in raw.items():
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            sanitized[str(key)] = text
+    return sanitized
 
-    strategic_fit: List[str] = [
-        f"Align {display_company}'s {sector.lower()} capabilities with localized operating partners to accelerate execution."
-    ]
-    demand_drivers: List[str] = [
-        f"Validate demand signals for {sector.lower()} offerings across priority customer segments before scaling investments."
-    ]
-    technology_enablers: List[str] = [
-        f"Leverage digital tooling and data assets to differentiate {display_company}'s {sector.lower()} proposition in new markets."
-    ]
-    regulatory_watch: List[str] = [
-        f"Map licensing, labor, and data requirements governing {sector.lower()} operators ahead of launch."
-    ]
-    sustainability_factors: List[str] = [
-        f"Assess environmental expectations for {sector.lower()} value chains to inform product design and sourcing."
-    ]
-    risk_watch: List[str] = [
-        f"Monitor geopolitical and supply-chain volatility that could disrupt {display_company}'s expansion roadmap."
-    ]
 
-    if "cost_efficiency" in priorities:
-        strategic_fit.append(
-            f"Prioritize near-term efficiencies, such as shared services or automation, to protect {display_company}'s margin profile."
-        )
-    if "digital" in priorities:
-        technology_enablers.append(
-            f"Invest in localized integrations and APIs to embed {display_company}'s platform within regional ecosystems."
-        )
-    if "sustainability" in priorities:
-        sustainability_factors.append(
-            f"Embed measurable sustainability KPIs into the market entry case for {display_company}."
-        )
-    if "growth" in priorities:
-        demand_drivers.append(
-            f"Size white-space demand pools for {sector.lower()} solutions to justify scaling capital deployment."
-        )
-    if "risk" in priorities:
-        risk_watch.append(
-            f"Define contingency plans for regulatory or macro shocks that could impede {agenda.lower()} milestones."
-        )
+def _sanitize_sources(raw: object) -> List[str]:
+    if not raw:
+        return []
+    if isinstance(raw, str):
+        cleaned = raw.strip()
+        return [cleaned] if cleaned else []
+    if isinstance(raw, list):
+        sources: List[str] = []
+        for item in raw:
+            if item is None:
+                continue
+            cleaned = str(item).strip()
+            if cleaned:
+                sources.append(cleaned)
+        return sources
+    return []
 
-    return {
-        "profile_summary": summary,
-        "strategic_fit": strategic_fit,
-        "demand_drivers": demand_drivers,
-        "technology_enablers": technology_enablers,
-        "regulatory_watch": regulatory_watch,
-        "sustainability_factors": sustainability_factors,
-        "risk_watch": risk_watch,
-    }
+
+def _sanitize_news(raw: object) -> List[str]:
+    if not raw:
+        return []
+    if isinstance(raw, str):
+        cleaned = raw.strip()
+        return [cleaned] if cleaned else []
+    if isinstance(raw, list):
+        headlines: List[str] = []
+        for item in raw:
+            if item is None:
+                continue
+            cleaned = str(item).strip()
+            if cleaned:
+                headlines.append(cleaned)
+        return headlines
+    return []
 
 
 def generate_market_analysis(
@@ -137,48 +127,51 @@ def generate_market_analysis(
     markets: List[str],
     priorities: List[str],
 ) -> ComparativeAnalysis:
-    dataset = load_country_indicators()
     weights = _parse_priorities(priorities)
 
-    try:
-        company_brief = generate_company_market_brief(
-            company=company,
-            industry=industry,
-            use_case=use_case,
-            priorities=weights,
-        )
-    except ChatGPTNotConfiguredError:
-        company_brief = _fallback_company_brief(company, industry, use_case, weights)
-    except Exception as exc:  # noqa: BLE001 - log unexpected API issues
-        LOGGER.warning("Falling back to heuristic company brief: %s", exc)
-        company_brief = _fallback_company_brief(company, industry, use_case, weights)
+    company_brief = generate_company_market_brief(
+        company=company,
+        industry=industry,
+        use_case=use_case,
+        priorities=weights,
+    )
 
     results: List[MarketAnalysisResult] = []
     for market in markets:
-        indicator: CountryIndicator = dataset[market]
-        pestel = generate_pestel_from_indicators(
-            market,
-            indicator.indicators,
-            indicator.narratives,
-            company=company,
-            industry=industry,
-            priorities=weights,
-            use_case=use_case,
-            company_brief=company_brief,
-        )
-        score = compute_market_score(indicator.indicators, weights)
-        news = get_recent_news_summaries(market, indicator)
-        entry_mode = select_entry_mode(score.composite, use_case)
-        turnaround_actions = build_turnaround_actions(score.dimension_scores)
+        if not market:
+            continue
+        try:
+            snapshot = generate_market_snapshot(
+                country=market,
+                company=company,
+                industry=industry,
+                use_case=use_case,
+                priorities=weights,
+                company_brief=company_brief,
+            )
+        except ChatGPTNotConfiguredError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - provide context for debugging
+            raise RuntimeError(f"Failed to generate ChatGPT snapshot for {market}: {exc}") from exc
+
+        pestel_payload = snapshot.get("pestel") if isinstance(snapshot, dict) else {}
+        scores_payload = snapshot.get("scores") if isinstance(snapshot, dict) else {}
+
+        score = ScoreBreakdown.from_payload(scores_payload if isinstance(scores_payload, dict) else {})
+        news = _sanitize_news(snapshot.get("recent_signals"))
+        entry_mode = str(snapshot.get("entry_mode") or "").strip()
+        turnaround = _sanitize_turnaround_actions(snapshot.get("turnaround_actions"))
+        sources = _sanitize_sources(snapshot.get("sources"))
+
         results.append(
             MarketAnalysisResult(
                 country=market,
-                pestel=pestel,
+                pestel=_sanitize_pestel(pestel_payload if isinstance(pestel_payload, dict) else {}),
                 score=score,
                 news=news,
                 entry_mode=entry_mode,
-                turnaround_actions=turnaround_actions,
-                sources=indicator.sources,
+                turnaround_actions=turnaround,
+                sources=sources,
             )
         )
 
@@ -190,3 +183,6 @@ def generate_market_analysis(
         markets=results,
         company_brief=company_brief,
     )
+
+
+__all__ = ["MarketAnalysisResult", "ComparativeAnalysis", "generate_market_analysis"]
