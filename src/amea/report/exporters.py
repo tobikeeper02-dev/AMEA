@@ -18,6 +18,28 @@ def export_to_docx(analysis: ComparativeAnalysis, path: Path) -> Path:
     if best := analysis.best_market():
         document.add_paragraph(f"Recommended market: {best.country} (score {best.score.composite}/100)")
 
+    if analysis.company_brief:
+        document.add_heading("Company & Industry Intelligence", level=2)
+        summary = analysis.company_brief.get("profile_summary")
+        if summary:
+            document.add_paragraph(summary)
+
+        sections = [
+            ("Strategic fit", analysis.company_brief.get("strategic_fit", [])),
+            ("Demand drivers", analysis.company_brief.get("demand_drivers", [])),
+            ("Technology enablers", analysis.company_brief.get("technology_enablers", [])),
+            ("Regulatory watch", analysis.company_brief.get("regulatory_watch", [])),
+            ("Sustainability factors", analysis.company_brief.get("sustainability_factors", [])),
+            ("Risk watch", analysis.company_brief.get("risk_watch", [])),
+        ]
+        for heading, bullets in sections:
+            cleaned = [bullet for bullet in bullets if bullet]
+            if not cleaned:
+                continue
+            document.add_paragraph(heading, style="List Bullet")
+            for bullet in cleaned:
+                document.add_paragraph(bullet, style="List Number")
+
     for market in analysis.markets:
         document.add_heading(market.country, level=2)
         document.add_paragraph(f"Composite opportunity score: {market.score.composite}/100")

@@ -39,6 +39,12 @@ The integration automatically falls back to the packaged heuristic content if th
 
 The app lets you configure the engagement (company, industry, target markets, strategic priorities, and desired use case), executes an automated research synthesis, and renders comparative analytics (PESTEL narratives, scoring radar, and recommended entry mode). Each market includes citation-style source lists so you can trace the input data. You can also download an auto-generated Word document summarizing the findings.
 
+### Company- and industry-aware insights
+
+When ChatGPT is enabled, AMEA first asks the model to craft a company and industry brief that captures business-model nuances, regulatory watchpoints, and strategic levers tied to your stated priorities. That context is injected into each country’s PESTEL request so the resulting commentary addresses the specific organisation and sector rather than repeating generic guidance. The Streamlit dashboard surfaces this brief in a dedicated “Company & industry intelligence” card, and the DOCX export mirrors the same content at the top of the report.
+
+If ChatGPT is unavailable, AMEA still generates a deterministic company brief based on the provided inputs so the rest of the pipeline has a clear strategic frame of reference.
+
 ## Architecture overview
 
 ```

@@ -5,7 +5,7 @@ import json
 import logging
 import os
 from functools import lru_cache
-from typing import Dict, Iterable, List, Mapping, Sequence
+from typing import Any, Dict, Iterable, List, Mapping, Sequence
 
 from openai import OpenAI
 
@@ -204,14 +204,21 @@ def generate_pestel_with_chatgpt(
     priorities: Mapping[str, float],
     indicators: Mapping[str, float],
     narratives: Mapping[str, Sequence[str]],
+    company_brief: Mapping[str, Any] | None = None,
 ) -> Dict[str, List[str]]:
     """Request a PESTEL analysis from ChatGPT."""
 
     client = _client()
+    brief_section = ""
+    if company_brief:
+        try:
+            brief_section = json.dumps(company_brief, ensure_ascii=False, indent=2)
+        except TypeError:
+            brief_section = str(company_brief)
     prompt = (
         "You are a senior strategy consultant supporting a market entry analysis.\n"
         "Using the structured data below, produce a concise PESTEL summary with 2-3 bullets per dimension.\n"
-        "Each bullet should tie back to the quantitative indicators or curated context.\n"
+        "Each bullet should tie back to the quantitative indicators, curated notes, and the company-specific context provided.\n"
         "Return valid JSON with the keys Political, Economic, Social, Technological, Environmental, Legal.\n"
         "Do not include commentary outside of the JSON object.\n"
         f"Country: {country}\n"
@@ -219,10 +226,14 @@ def generate_pestel_with_chatgpt(
         f"Industry: {industry or 'Not specified'}\n"
         f"Engagement use case: {use_case or 'Market expansion'}\n"
         f"{_format_priorities(priorities)}\n"
+        "Company intelligence:\n"
+        f"{brief_section}\n"
         "Quantitative indicators:\n"
         f"{_indicator_section(indicators)}\n"
         "Curated talking points by dimension:\n"
         f"{_narrative_section(narratives)}\n"
+        "Anchor every bullet in the realities of the specified industry and country, avoiding boilerplate language.\n"
+        "Highlight implications for the company’s go-to-market, operations, or risk posture.\n"
         "Respond with concise, executive-ready language."
     )
 
@@ -305,8 +316,77 @@ def summarize_news_with_chatgpt(
     return bullets
 
 
+def generate_company_market_brief(
+    *,
+    company: str,
+    industry: str,
+    use_case: str,
+    priorities: Mapping[str, float],
+) -> Dict[str, Any]:
+    """Return a company and industry context pack using ChatGPT."""
+
+    client = _client()
+    prompt = (
+        "You are drafting the executive brief for a market entry strategy engagement.\n"
+        "Synthesize what makes the client distinctive and which industry forces matter most before the country deep-dives begin.\n"
+        "Respond with a JSON object containing these keys: profile_summary (string), strategic_fit (array of strings), demand_drivers (array of strings), technology_enablers (array of strings), regulatory_watch (array of strings), sustainability_factors (array of strings), risk_watch (array of strings).\n"
+        "Each array item should be a concise, insight-driven bullet (max 28 words) that ties directly to the company and its industry.\n"
+        "Draw on well-known facts through 2024 and clarify assumptions if direct evidence is limited.\n"
+        f"Company: {company or 'Client'}\n"
+        f"Industry focus: {industry or 'Not specified'}\n"
+        f"Engagement goal: {use_case or 'Market expansion'}\n"
+        f"{_format_priorities(priorities)}\n"
+        "Avoid generic statements that could apply to any sector; be specific about the business model, value chain, and regulatory posture.\n"
+    )
+
+    response = client.responses.create(
+        model=_model_name(),
+        input=prompt,
+        temperature=_get_temperature(),
+        max_output_tokens=900,
+    )
+
+    text = getattr(response, "output_text", "")
+    if not text:
+        raise ValueError("ChatGPT returned an empty payload for company briefing")
+
+    raw = _extract_json_structure(text)
+    if not isinstance(raw, dict):
+        raise ValueError("ChatGPT company briefing response was not a JSON object")
+
+    def _normalize_section(key: str) -> List[str]:
+        value = raw.get(key) or raw.get(key.lower()) or raw.get(key.replace("_", ""))
+        if value is None:
+            return []
+        if isinstance(value, list):
+            return _normalize_bullets(value)
+        return _normalize_bullets([value])
+
+    result: Dict[str, Any] = {
+        "profile_summary": raw.get("profile_summary")
+        or raw.get("summary")
+        or raw.get("profile"),
+        "strategic_fit": _normalize_section("strategic_fit"),
+        "demand_drivers": _normalize_section("demand_drivers"),
+        "technology_enablers": _normalize_section("technology_enablers"),
+        "regulatory_watch": _normalize_section("regulatory_watch"),
+        "sustainability_factors": _normalize_section("sustainability_factors"),
+        "risk_watch": _normalize_section("risk_watch"),
+    }
+    summary = result.get("profile_summary")
+    if isinstance(summary, list):
+        result["profile_summary"] = "; ".join(summary)
+    elif isinstance(summary, (int, float)):
+        result["profile_summary"] = str(summary)
+    elif isinstance(summary, str):
+        result["profile_summary"] = summary.strip()
+
+    return result
+
+
 __all__ = [
     "ChatGPTNotConfiguredError",
+    "generate_company_market_brief",
     "generate_pestel_with_chatgpt",
     "summarize_news_with_chatgpt",
     "is_chatgpt_configured",

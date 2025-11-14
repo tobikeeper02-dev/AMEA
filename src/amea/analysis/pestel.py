@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, List
+from typing import Dict, Iterable, List
 
 from ..research.llm import ChatGPTNotConfiguredError, generate_pestel_with_chatgpt
 from .scoring import normalize_indicator
@@ -11,6 +11,26 @@ from .scoring import normalize_indicator
 LOGGER = logging.getLogger(__name__)
 
 PESTEL_DIMENSIONS = ["Political", "Economic", "Social", "Technological", "Environmental", "Legal"]
+
+
+def _iter_brief_items(payload: Dict[str, object], key: str) -> List[str]:
+    value = payload.get(key)
+    if value is None:
+        return []
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return [cleaned] if cleaned else []
+    if isinstance(value, Iterable):
+        results: List[str] = []
+        for item in value:
+            if item is None:
+                continue
+            cleaned = str(item).strip()
+            if cleaned:
+                results.append(cleaned)
+        return results
+    cleaned = str(value).strip()
+    return [cleaned] if cleaned else []
 
 
 def _heuristic_pestel(
@@ -22,6 +42,7 @@ def _heuristic_pestel(
     industry: str,
     priorities: Dict[str, float],
     use_case: str,
+    company_brief: Dict[str, object] | None,
 ) -> Dict[str, List[str]]:
     pestel: Dict[str, List[str]] = {dimension: [] for dimension in PESTEL_DIMENSIONS}
 
@@ -46,6 +67,11 @@ def _heuristic_pestel(
     industry_label = industry.lower() if industry else "target industry"
     use_case_label = use_case.lower() if use_case else "market expansion"
     context_clause = f"For {company}'s {use_case_label} agenda in the {industry_label} space in {country}, "
+
+    brief = company_brief or {}
+    profile_summary_items = _iter_brief_items(brief, "profile_summary")
+    if profile_summary_items:
+        pestel["Economic"].extend(profile_summary_items)
 
     # Political
     governance = indicators.get("governance_index", 50)
@@ -105,6 +131,20 @@ def _heuristic_pestel(
     )
     pestel["Legal"].extend(narratives.get("legal", []))
 
+    if brief:
+        for note in _iter_brief_items(brief, "strategic_fit"):
+            pestel["Economic"].append(note)
+        for note in _iter_brief_items(brief, "demand_drivers"):
+            pestel["Social"].append(note)
+        for note in _iter_brief_items(brief, "technology_enablers"):
+            pestel["Technological"].append(note)
+        for note in _iter_brief_items(brief, "regulatory_watch"):
+            pestel["Legal"].append(note)
+        for note in _iter_brief_items(brief, "sustainability_factors"):
+            pestel["Environmental"].append(note)
+        for note in _iter_brief_items(brief, "risk_watch"):
+            pestel["Political"].append(note)
+
     if top_priority:
         dimension = priority_dimension_map.get(top_priority)
         if dimension:
@@ -126,6 +166,7 @@ def generate_pestel_from_indicators(
     industry: str,
     priorities: Dict[str, float],
     use_case: str,
+    company_brief: Dict[str, object] | None,
 ) -> Dict[str, List[str]]:
     """Create qualitative commentary for PESTEL dimensions."""
 
@@ -137,6 +178,7 @@ def generate_pestel_from_indicators(
         industry=industry,
         priorities=priorities,
         use_case=use_case,
+        company_brief=company_brief,
     )
 
     try:
@@ -148,6 +190,7 @@ def generate_pestel_from_indicators(
             priorities=priorities,
             indicators=indicators,
             narratives=narratives,
+            company_brief=company_brief,
         )
     except ChatGPTNotConfiguredError:
         return baseline

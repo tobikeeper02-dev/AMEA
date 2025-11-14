@@ -115,6 +115,36 @@ def _render_export_controls(analysis: ComparativeAnalysis):
     )
 
 
+def _render_company_context(analysis: ComparativeAnalysis):
+    brief = analysis.company_brief or {}
+    has_summary = bool(brief.get("profile_summary"))
+    bullet_sections = [
+        ("Strategic fit", brief.get("strategic_fit", [])),
+        ("Demand drivers", brief.get("demand_drivers", [])),
+        ("Technology enablers", brief.get("technology_enablers", [])),
+        ("Regulatory watch", brief.get("regulatory_watch", [])),
+        ("Sustainability factors", brief.get("sustainability_factors", [])),
+        ("Risk watch", brief.get("risk_watch", [])),
+    ]
+
+    if not has_summary and not any(bullets for _, bullets in bullet_sections):
+        return
+
+    st.subheader("Company & industry intelligence")
+    if has_summary:
+        st.markdown(f"**Summary:** {brief['profile_summary']}")
+
+    cols = st.columns(3)
+    for index, (label, bullets) in enumerate(bullet_sections):
+        cleaned = [bullet for bullet in bullets if bullet]
+        if not cleaned:
+            continue
+        with cols[index % 3]:
+            st.markdown(f"**{label}**")
+            for bullet in cleaned:
+                st.write(f"- {bullet}")
+
+
 def main():
     _render_header()
 
@@ -221,6 +251,7 @@ def main():
         f"{analysis.company} · {analysis.industry} · Focus: {analysis.use_case}"
     )
 
+    _render_company_context(analysis)
     _render_scorecard(analysis)
     _render_market_detail(analysis)
     _render_export_controls(analysis)
