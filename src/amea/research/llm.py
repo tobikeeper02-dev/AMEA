@@ -51,6 +51,12 @@ def _client() -> OpenAI:
     return OpenAI(api_key=api_key)
 
 
+def is_chatgpt_configured() -> bool:
+    """Return True when an API key is available for ChatGPT calls."""
+
+    return bool(os.getenv("OPENAI_API_KEY"))
+
+
 def _extract_json_structure(text: str) -> object:
     """Attempt to parse JSON from a model response."""
 
@@ -231,5 +237,6 @@ __all__ = [
     "ChatGPTNotConfiguredError",
     "generate_pestel_with_chatgpt",
     "summarize_news_with_chatgpt",
+    "is_chatgpt_configured",
 ]
 

@@ -19,6 +19,7 @@ if str(SRC_PATH) not in sys.path:
 from amea.pipeline import ComparativeAnalysis, generate_market_analysis
 from amea.report.exporters import export_to_docx
 from amea.research.data_loader import load_country_indicators
+from amea.research.llm import is_chatgpt_configured
 
 st.set_page_config(page_title="AMEA - Market Entry Copilot", layout="wide")
 
@@ -118,6 +119,12 @@ def main():
 
     with st.sidebar:
         st.header("Engagement setup")
+        if is_chatgpt_configured():
+            st.success("ChatGPT integration active for narratives and news highlights.")
+        else:
+            st.warning(
+                "ChatGPT integration inactive. Set OPENAI_API_KEY before running the analysis to enable AI-generated insights."
+            )
         company = st.text_input("Company name", value="Instacart")
         industry = st.text_input("Industry", value="Online grocery delivery")
         use_case = st.selectbox(
