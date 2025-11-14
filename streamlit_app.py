@@ -31,6 +31,7 @@ def _render_header():
         and export a board-ready report in minutes.
         """
     )
+    st.caption("PESTEL narratives and news highlights leverage OpenAI ChatGPT when credentials are configured.")
 
 
 def _priority_selector() -> List[str]:
@@ -142,7 +143,6 @@ def main():
         return
 
     analysis = generate_market_analysis(company, industry, use_case, markets, priorities)
-    analysis = generate_market_analysis(company, industry, markets, priorities)
 
     if best := analysis.best_market():
         st.success(

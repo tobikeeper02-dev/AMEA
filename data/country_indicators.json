@@ -94,27 +94,6 @@
       "OECD Employment Outlook (2023)",
       "French Ministry of Economy digital strategy brief (2024)"
     ]
-        "Logistics strike activity moderates following new gig-economy protections."      
-      ],
-      "economic": [
-        "Fiscal support for households sustains mid-term consumption resilience."      
-      ],
-      "political": [
-        "Regulatory push for digital sovereignty introduces compliance pathways for data localization."      
-      ],
-      "social": [
-        "Consumer preference for omnichannel experiences is rising across major metros."      
-      ],
-      "technological": [
-        "Public-private partnerships accelerate AI experimentation in supply chain orchestration."      
-      ],
-      "environmental": [
-        "Nuclear-heavy energy mix keeps carbon intensity lower than EU peers."      
-      ],
-      "legal": [
-        "Gig worker legislation demands transparent contracting and benefits alignment."      
-      ]
-    }
   },
   "Spain": {
     "indicators": {
@@ -451,26 +430,5 @@
       "Singapore Green Plan 2030 progress report (2024)",
       "Monetary Authority of Singapore financial services review (2023)"
     ]
-        "Startup law introduces fresh tax incentives for international talent relocation."      
-      ],
-      "economic": [
-        "EU recovery funds continue flowing into infrastructure and digitalization programs."      
-      ],
-      "political": [
-        "Regional autonomy requires tailored government relations and localized stakeholder outreach."      
-      ],
-      "social": [
-        "Rapid e-commerce penetration reshapes grocery delivery expectations in urban centers."      
-      ],
-      "technological": [
-        "5G corridor investments unlock advanced last-mile experimentation opportunities."      
-      ],
-      "environmental": [
-        "Ambitious renewable rollout targets 74% clean power by 2030, favoring green operations."      
-      ],
-      "legal": [
-        "Labor reforms tighten contract flexibility, necessitating proactive HR compliance."      
-      ]
-    }
   }
 }

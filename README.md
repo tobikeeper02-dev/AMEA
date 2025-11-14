@@ -20,7 +20,20 @@ Launch the interactive dashboard locally:
 streamlit run streamlit_app.py
 ```
 
-The app lets you configure the engagement (company, industry, target markets, and strategic priorities), executes an automated research synthesis, and renders comparative analytics (PESTEL narratives, scoring radar, and recommended entry mode). You can also download an auto-generated Word document summarizing the findings.
+### Enable ChatGPT-powered narratives
+
+The assistant can call OpenAI's ChatGPT to synthesize PESTEL narratives and rewrite recent news highlights. Provide credentials before launching the Streamlit app:
+
+```bash
+export OPENAI_API_KEY="your-openai-key"
+# Optional overrides
+export AMEA_OPENAI_MODEL="gpt-4o-mini"        # or another Responses API model
+export AMEA_OPENAI_TEMPERATURE="0.2"          # keep outputs focused
+```
+
+The integration automatically falls back to the packaged heuristic content if the credentials are missing or an API error occurs.
+
+The app lets you configure the engagement (company, industry, target markets, strategic priorities, and desired use case), executes an automated research synthesis, and renders comparative analytics (PESTEL narratives, scoring radar, and recommended entry mode). Each market includes citation-style source lists so you can trace the input data. You can also download an auto-generated Word document summarizing the findings.
 
 ## Architecture overview
 

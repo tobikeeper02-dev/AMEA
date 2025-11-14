@@ -1,12 +1,16 @@
 """Utilities for loading market indicators and contextual information."""
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-import json
+from .llm import ChatGPTNotConfiguredError, summarize_news_with_chatgpt
 
+
+LOGGER = logging.getLogger(__name__)
 
 DATA_PATH = Path(__file__).resolve().parent.parent.parent.parent / "data" / "country_indicators.json"
 
@@ -37,10 +41,29 @@ def load_country_indicators() -> Dict[str, CountryIndicator]:
     return result
 
 
-def get_recent_news_summaries(country: str) -> List[str]:
-    """Placeholder for a live news retrieval layer.
+def get_recent_news_summaries(country: str, indicator: Optional[CountryIndicator] = None) -> List[str]:
+    """Return synthesized news bullets for a market.
 
-    In production, this function would leverage news APIs or web scraping.
-    For now, we return curated talking points from the packaged dataset.
+    When ChatGPT credentials are available we ask the model to rewrite the
+    curated notes into polished highlights. Otherwise the curated bullets are
+    returned unchanged.
     """
-    return load_country_indicators()[country].narratives.get("news", [])
+
+    if indicator is None:
+        indicator = load_country_indicators()[country]
+
+    baseline = indicator.narratives.get("news", [])
+    if not baseline:
+        return []
+
+    try:
+        return summarize_news_with_chatgpt(
+            country=country,
+            news_bullets=baseline,
+            sources=indicator.sources,
+        )
+    except ChatGPTNotConfiguredError:
+        return baseline
+    except Exception as exc:  # noqa: BLE001 - logging for observability
+        LOGGER.warning("Falling back to curated news for %s: %s", country, exc)
+        return baseline
