@@ -25,9 +25,9 @@ streamlit run streamlit_app.py
 The assistant can call OpenAI's ChatGPT to synthesize PESTEL narratives and rewrite recent news highlights. Provide credentials before launching the Streamlit app:
 
 ```bash
-export OPENAI_API_KEY="your-openai-key"
+export OPENAI_API_KEY=="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"
 # Optional overrides
-export AMEA_OPENAI_MODEL="gpt-4o-mini"        # or another Responses API model
+export AMEA_OPENAI_MODEL="gpt-5o-nano"        # or another Responses API model
 export AMEA_OPENAI_TEMPERATURE="0.2"          # keep outputs focused
 ```
 
