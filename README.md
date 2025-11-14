@@ -22,14 +22,18 @@ streamlit run streamlit_app.py
 
 ### Enable ChatGPT-powered narratives
 
-The assistant can call OpenAI's ChatGPT to synthesize PESTEL narratives and rewrite recent news highlights. Provide credentials before launching the Streamlit app:
+The assistant can call OpenAI's ChatGPT to synthesize PESTEL narratives and rewrite recent news highlights. Provide credentials before launching the Streamlit app, or paste them directly into the sidebar controls once the app is running.
+
+**Environment setup (optional but recommended for local development):**
 
 ```bash
-export OPENAI_API_KEY=="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"
+export OPENAI_API_KEY="your-openai-key"
 # Optional overrides
-export AMEA_OPENAI_MODEL="gpt-5o-nano"        # or another Responses API model
+export AMEA_OPENAI_MODEL="gpt-4o-mini"        # or another Responses API model
 export AMEA_OPENAI_TEMPERATURE="0.2"          # keep outputs focused
 ```
+
+**In-app configuration:** Use the **OpenAI configuration** section in the Streamlit sidebar to paste your API key, set a custom base URL (for Azure/OpenAI proxies), adjust the model, and tweak temperature. The sidebar status indicator will confirm when ChatGPT is active.
 
 The integration automatically falls back to the packaged heuristic content if the credentials are missing or an API error occurs.
 

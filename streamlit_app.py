@@ -1,6 +1,7 @@
 """Streamlit front-end for the AMEA market analysis assistant."""
 from __future__ import annotations
 
+import os
 from io import BytesIO
 from pathlib import Path
 from typing import List
@@ -119,12 +120,72 @@ def main():
 
     with st.sidebar:
         st.header("Engagement setup")
+        st.markdown("#### OpenAI configuration")
+
+        api_key_default = st.session_state.get("amea_openai_api_key", "")
+        api_key_input = st.text_input(
+            "API key",
+            value=api_key_default,
+            type="password",
+            help="Paste your OpenAI key or leave blank to rely on environment/secrets configuration.",
+        )
+        if api_key_input:
+            st.session_state["amea_openai_api_key"] = api_key_input.strip()
+        elif "amea_openai_api_key" in st.session_state:
+            st.session_state.pop("amea_openai_api_key")
+
+        base_url_default = st.session_state.get("amea_openai_base_url", "")
+        base_url_input = st.text_input(
+            "Base URL (optional)",
+            value=base_url_default,
+            placeholder="https://api.openai.com/v1",
+            help="Override when routing through Azure OpenAI or a proxy.",
+        )
+        if base_url_input:
+            st.session_state["amea_openai_base_url"] = base_url_input.strip()
+        elif "amea_openai_base_url" in st.session_state:
+            st.session_state.pop("amea_openai_base_url")
+
+        model_default = st.session_state.get("amea_openai_model") or os.getenv("AMEA_OPENAI_MODEL", "gpt-4o-mini")
+        model_input = st.text_input(
+            "Model name",
+            value=model_default,
+            help="Specify the ChatGPT model to use (defaults to gpt-4o-mini).",
+        )
+        if model_input:
+            st.session_state["amea_openai_model"] = model_input.strip()
+        elif "amea_openai_model" in st.session_state:
+            st.session_state.pop("amea_openai_model")
+
+        temperature_state = st.session_state.get("amea_openai_temperature")
+        if temperature_state is None:
+            try:
+                temperature_default = float(os.getenv("AMEA_OPENAI_TEMPERATURE", "0.2"))
+            except ValueError:
+                temperature_default = 0.2
+        else:
+            try:
+                temperature_default = float(temperature_state)
+            except (TypeError, ValueError):
+                temperature_default = 0.2
+        temperature_input = st.slider(
+            "Temperature",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(temperature_default),
+            step=0.05,
+            help="Lower values keep outputs deterministic; higher values encourage creative variety.",
+        )
+        st.session_state["amea_openai_temperature"] = temperature_input
+
         if is_chatgpt_configured():
             st.success("ChatGPT integration active for narratives and news highlights.")
         else:
             st.warning(
-                "ChatGPT integration inactive. Set OPENAI_API_KEY before running the analysis to enable AI-generated insights."
+                "ChatGPT integration inactive. Provide an API key above or set OPENAI_API_KEY to enable AI-generated insights."
             )
+
+        st.divider()
         company = st.text_input("Company name", value="Instacart")
         industry = st.text_input("Industry", value="Online grocery delivery")
         use_case = st.selectbox(

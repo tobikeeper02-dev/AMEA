@@ -22,12 +22,80 @@ PESTEL_DIMENSIONS = [
 ]
 
 
+SESSION_API_KEY = "amea_openai_api_key"
+SESSION_BASE_URL = "amea_openai_base_url"
+SESSION_MODEL = "amea_openai_model"
+SESSION_TEMPERATURE = "amea_openai_temperature"
+
+
 class ChatGPTNotConfiguredError(RuntimeError):
     """Raised when ChatGPT credentials are not available."""
 
 
+def _get_streamlit_module():  # pragma: no cover - optional dependency
+    try:  # Import lazily to avoid a hard dependency outside the app runtime
+        import streamlit as st  # type: ignore
+    except Exception:  # noqa: BLE001 - any import issue means Streamlit is unavailable
+        return None
+    return st
+
+
+def _from_session_state(key: str) -> str | None:
+    st = _get_streamlit_module()
+    if not st:
+        return None
+    try:
+        value = st.session_state.get(key)
+    except Exception:  # noqa: BLE001 - guard against SessionState access errors
+        return None
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        value = str(value)
+    value = value.strip()
+    return value or None
+
+
+def _from_streamlit_secrets(key: str) -> str | None:
+    st = _get_streamlit_module()
+    if not st:
+        return None
+    try:
+        value = st.secrets.get(key)
+    except Exception:  # noqa: BLE001 - secrets may not be configured
+        return None
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        value = str(value)
+    value = value.strip()
+    return value or None
+
+
+def _resolve_config_value(env_var: str, *, session_key: str | None = None) -> str | None:
+    """Resolve configuration with Streamlit session > env var > secrets."""
+
+    if session_key:
+        if session_value := _from_session_state(session_key):
+            return session_value
+
+    # Allow matching session key fallback when not explicitly provided
+    if not session_key:
+        inferred_session_key = f"amea_{env_var.lower()}"
+        if session_value := _from_session_state(inferred_session_key):
+            return session_value
+
+    env_value = os.getenv(env_var)
+    if env_value:
+        env_value = env_value.strip()
+        if env_value:
+            return env_value
+
+    return _from_streamlit_secrets(env_var)
+
+
 def _get_temperature() -> float:
-    raw = os.getenv("AMEA_OPENAI_TEMPERATURE", "0.2")
+    raw = _resolve_config_value("AMEA_OPENAI_TEMPERATURE", session_key=SESSION_TEMPERATURE) or "0.2"
     try:
         value = float(raw)
     except ValueError:
@@ -36,25 +104,29 @@ def _get_temperature() -> float:
 
 
 def _model_name() -> str:
-    return os.getenv("AMEA_OPENAI_MODEL", "gpt-4o-mini")
+    return _resolve_config_value("AMEA_OPENAI_MODEL", session_key=SESSION_MODEL) or "gpt-4o-mini"
 
 
 @lru_cache(maxsize=1)
-def _client() -> OpenAI:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise ChatGPTNotConfiguredError("Set OPENAI_API_KEY to enable ChatGPT features.")
-
-    base_url = os.getenv("OPENAI_BASE_URL")
+def _cached_client(api_key: str, base_url: str | None) -> OpenAI:
     if base_url:
         return OpenAI(api_key=api_key, base_url=base_url)
     return OpenAI(api_key=api_key)
 
 
+def _client() -> OpenAI:
+    api_key = _resolve_config_value("OPENAI_API_KEY", session_key=SESSION_API_KEY)
+    if not api_key:
+        raise ChatGPTNotConfiguredError("Provide an OpenAI API key to enable ChatGPT features.")
+
+    base_url = _resolve_config_value("OPENAI_BASE_URL", session_key=SESSION_BASE_URL)
+    return _cached_client(api_key, base_url)
+
+
 def is_chatgpt_configured() -> bool:
     """Return True when an API key is available for ChatGPT calls."""
 
-    return bool(os.getenv("OPENAI_API_KEY"))
+    return bool(_resolve_config_value("OPENAI_API_KEY", session_key=SESSION_API_KEY))
 
 
 def _extract_json_structure(text: str) -> object:
