@@ -33,12 +33,13 @@ directly into the sidebar controls once the app is running.
 export OPENAI_API_KEY="your-openai-key"
 # Optional overrides
 export AMEA_OPENAI_MODEL="gpt-5-nano"        # default model
-export AMEA_OPENAI_TEMPERATURE="0.2"        # keep outputs focused
+export AMEA_OPENAI_TEMPERATURE="0.2"        # ignored by gpt-5-nano
 ```
 
 **In-app configuration:** Use the **OpenAI configuration** section in the Streamlit sidebar to paste your API key, set a custom
-base URL (for Azure/OpenAI proxies), adjust the model, and tweak temperature. The sidebar status indicator confirms when ChatGPT
-is active, and the **Test API** button runs a quick health check so you can verify connectivity without leaving the app.
+base URL (for Azure/OpenAI proxies), adjust the model, and tweak temperature for models that expose that control (gpt-5-nano
+always runs at its default setting). The sidebar status indicator confirms when ChatGPT is active, and the **Test API** button
+runs a quick health check so you can verify connectivity without leaving the app.
 
 If the key is missing the app will halt—there is no longer a heuristic or cached fallback.
 

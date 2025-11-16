@@ -6,9 +6,12 @@ import logging
 import os
 import time
 from functools import lru_cache
-from typing import Any, Dict, Iterable, Mapping, Sequence
+from typing import Any, Dict, Iterable, Mapping
 
 from openai import OpenAI
+
+
+TEMPERATURE_UNSUPPORTED_PREFIXES = ("gpt-5-nano",)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -123,6 +126,44 @@ def _client() -> OpenAI:
     return _cached_client(api_key, base_url)
 
 
+def _supports_temperature(model: str) -> bool:
+    return not any(model.startswith(prefix) for prefix in TEMPERATURE_UNSUPPORTED_PREFIXES)
+
+
+def _response_text(response: Any) -> str:
+    """Extract concatenated text output from a Responses API payload."""
+
+    if response is None:
+        return ""
+
+    text = getattr(response, "output_text", None)
+    if isinstance(text, str) and text.strip():
+        return text
+
+    parts: list[str] = []
+    for output in getattr(response, "output", []) or []:
+        output_type = getattr(output, "type", None)
+        if output_type != "output_text":
+            continue
+        for content in getattr(output, "content", []) or []:
+            if getattr(content, "type", None) != "text":
+                continue
+            text_block = getattr(getattr(content, "text", None), "value", None)
+            if isinstance(text_block, str) and text_block:
+                parts.append(text_block)
+
+    return "".join(parts)
+
+
+def _request_kwargs(model: str) -> Dict[str, Any]:
+    """Build keyword arguments for the Responses API call."""
+
+    kwargs: Dict[str, Any] = {"model": model}
+    if _supports_temperature(model):
+        kwargs["temperature"] = _get_temperature()
+    return kwargs
+
+
 def is_chatgpt_configured() -> bool:
     """Return True when an API key is available for ChatGPT calls."""
 
@@ -208,14 +249,14 @@ def generate_company_market_brief(
         "Avoid generic statements that could apply to any sector; be specific about the business model, value chain, and regulatory posture.\n"
     )
 
+    model = _model_name()
     response = client.responses.create(
-        model=_model_name(),
         input=prompt,
-        temperature=_get_temperature(),
         max_output_tokens=900,
+        **_request_kwargs(model),
     )
 
-    text = getattr(response, "output_text", "")
+    text = _response_text(response)
     if not text:
         raise ValueError("ChatGPT returned an empty payload for company briefing")
 
@@ -295,14 +336,14 @@ def generate_market_snapshot(
         "Deliver differentiated, decision-useful insights relevant for this exact engagement."
     )
 
+    model = _model_name()
     response = client.responses.create(
-        model=_model_name(),
         input=prompt,
-        temperature=_get_temperature(),
         max_output_tokens=1600,
+        **_request_kwargs(model),
     )
 
-    text = getattr(response, "output_text", "")
+    text = _response_text(response)
     if not text:
         raise ValueError("ChatGPT returned an empty payload for market snapshot")
 
@@ -318,14 +359,17 @@ def run_chatgpt_healthcheck() -> Dict[str, Any]:
 
     start = time.perf_counter()
     client = _client()
+    model = _model_name()
+    request_kwargs = _request_kwargs(model)
+    if _supports_temperature(model):
+        request_kwargs["temperature"] = 0.0
     response = client.responses.create(
-        model=_model_name(),
         input="Return JSON {\"status\": \"ok\", \"echo\": \"AMEA\"}.",
-        temperature=0.0,
         max_output_tokens=50,
+        **request_kwargs,
     )
     latency_ms = (time.perf_counter() - start) * 1000
-    text = getattr(response, "output_text", "")
+    text = _response_text(response)
     payload = _extract_json_structure(text)
     if not isinstance(payload, dict) or payload.get("status") != "ok":
         raise ValueError("ChatGPT health check did not return the expected payload")
