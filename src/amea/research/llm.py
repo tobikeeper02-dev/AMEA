@@ -158,6 +158,10 @@ def _response_text(response: Any) -> str:
         return ""
 
     text = _get(response, "output_text")
+    if response is None:
+        return ""
+
+    text = getattr(response, "output_text", None)
     if isinstance(text, str) and text.strip():
         return text
 
@@ -181,6 +185,17 @@ def _response_text(response: Any) -> str:
     # Fall back to any top-level text-like payload
     for candidate in ("message", "text", "content"):
         parts.extend(_coerce_text(_get(response, candidate)))
+    for output in getattr(response, "output", []) or []:
+        output_type = getattr(output, "type", None)
+        if output_type != "output_text":
+            continue
+        for content in getattr(output, "content", []) or []:
+            if getattr(content, "type", None) != "text":
+                continue
+            text_block = getattr(getattr(content, "text", None), "value", None)
+            if isinstance(text_block, str) and text_block:
+                parts.append(text_block)
+
     return "".join(parts)
 
 
