@@ -404,6 +404,7 @@ def generate_market_snapshot(
 
     prompt = (
         "You are AMEA, an AI consultant building a market entry pack.\n"
+        "Leverage domain knowledge, recent macro trends (through 2024), and logical inference to draft country-specific insights.\n"
         "Leverage domain knowledge, recent macro trends (through 2025), and logical inference to draft country-specific insights.\n"
         "Do NOT reuse canned or placeholder text—tailor every point to the company, industry, and country.\n"
         "If concrete datapoints are uncertain, note the assumption explicitly rather than fabricating figures.\n"
