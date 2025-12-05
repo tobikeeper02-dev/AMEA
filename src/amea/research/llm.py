@@ -133,22 +133,54 @@ def _supports_temperature(model: str) -> bool:
 def _response_text(response: Any) -> str:
     """Extract concatenated text output from a Responses API payload."""
 
+    def _get(obj: Any, key: str, default: Any = None) -> Any:
+        if obj is None:
+            return default
+        if isinstance(obj, Mapping):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
+    def _coerce_text(value: Any) -> list[str]:
+        if value is None:
+            return []
+        if isinstance(value, str):
+            return [value]
+        if isinstance(value, Mapping):
+            return _coerce_text(value.get("value") or value.get("text"))
+        if isinstance(value, Iterable):
+            result: list[str] = []
+            for item in value:
+                result.extend(_coerce_text(item))
+            return result
+        return [str(value)]
+
     if response is None:
         return ""
 
-    text = getattr(response, "output_text", None)
+    text = _get(response, "output_text")
     if isinstance(text, str) and text.strip():
         return text
 
     parts: list[str] = []
-    for output in getattr(response, "output", []) or []:
-        for content in getattr(output, "content", []) or []:
-            if getattr(content, "type", None) != "text":
+    for output in _get(response, "output", []) or []:
+        for content in _get(output, "content", []) or []:
+            content_type = _get(content, "type")
+            if content_type not in {"text", "output_text"}:
                 continue
-            text_block = getattr(getattr(content, "text", None), "value", None)
-            if isinstance(text_block, str) and text_block:
-                parts.append(text_block)
+            parts.extend(_coerce_text(_get(content, "text")))
+    if parts:
+        return "".join(parts)
 
+    # Handle responses that expose a raw "text" or "message" field at the output level
+    for output in _get(response, "output", []) or []:
+        parts.extend(_coerce_text(_get(output, "text")))
+        parts.extend(_coerce_text(_get(output, "message")))
+    if parts:
+        return "".join(parts)
+
+    # Fall back to any top-level text-like payload
+    for candidate in ("message", "text", "content"):
+        parts.extend(_coerce_text(_get(response, candidate)))
     return "".join(parts)
 
 
