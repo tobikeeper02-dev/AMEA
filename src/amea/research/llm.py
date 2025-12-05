@@ -170,6 +170,13 @@ def _response_text(response: Any) -> str:
             except Exception:  # noqa: BLE001 - fallback to string coercion
                 return str(parsed)
 
+    if response is None:
+        return ""
+
+    text = getattr(response, "output_text", None)
+    if isinstance(text, str) and text.strip():
+        return text
+
     parts: list[str] = []
     for output in _get(response, "output", []) or []:
         for content in _get(output, "content", []) or []:
@@ -194,6 +201,21 @@ def _response_text(response: Any) -> str:
 
 
 def _request_kwargs(model: str, *, force_json: bool = False) -> Dict[str, Any]:
+    for output in getattr(response, "output", []) or []:
+        output_type = getattr(output, "type", None)
+        if output_type != "output_text":
+            continue
+        for content in getattr(output, "content", []) or []:
+            if getattr(content, "type", None) != "text":
+                continue
+            text_block = getattr(getattr(content, "text", None), "value", None)
+            if isinstance(text_block, str) and text_block:
+                parts.append(text_block)
+
+    return "".join(parts)
+
+
+def _request_kwargs(model: str) -> Dict[str, Any]:
     """Build keyword arguments for the Responses API call."""
 
     kwargs: Dict[str, Any] = {"model": model}
@@ -230,6 +252,9 @@ def _extract_json_structure(text: str, *, response: Any | None = None) -> object
                 parsed = _get(content, "parsed")
                 if parsed is not None:
                     return parsed
+
+def _extract_json_structure(text: str) -> object:
+    """Attempt to parse JSON from a model response."""
 
     snippet = text.strip()
     if not snippet:
@@ -312,6 +337,7 @@ def generate_company_market_brief(
         input=prompt,
         max_output_tokens=900,
         **_request_kwargs(model, force_json=True),
+        **_request_kwargs(model),
     )
 
     text = _response_text(response)
@@ -319,6 +345,7 @@ def generate_company_market_brief(
         raise ValueError("ChatGPT returned an empty payload for company briefing")
 
     raw = _extract_json_structure(text, response=response)
+    raw = _extract_json_structure(text)
     if not isinstance(raw, dict):
         raise ValueError("ChatGPT company briefing response was not a JSON object")
 
@@ -399,6 +426,7 @@ def generate_market_snapshot(
         input=prompt,
         max_output_tokens=1600,
         **_request_kwargs(model, force_json=True),
+        **_request_kwargs(model),
     )
 
     text = _response_text(response)
@@ -406,6 +434,7 @@ def generate_market_snapshot(
         raise ValueError("ChatGPT returned an empty payload for market snapshot")
 
     raw = _extract_json_structure(text, response=response)
+    raw = _extract_json_structure(text)
     if not isinstance(raw, dict):
         raise ValueError("ChatGPT market snapshot response was not a JSON object")
 
@@ -419,6 +448,7 @@ def run_chatgpt_healthcheck() -> Dict[str, Any]:
     client = _client()
     model = _model_name()
     request_kwargs = _request_kwargs(model, force_json=True)
+    request_kwargs = _request_kwargs(model)
     if _supports_temperature(model):
         request_kwargs["temperature"] = 0.0
     response = client.responses.create(
@@ -429,6 +459,7 @@ def run_chatgpt_healthcheck() -> Dict[str, Any]:
     latency_ms = (time.perf_counter() - start) * 1000
     text = _response_text(response)
     payload = _extract_json_structure(text, response=response)
+    payload = _extract_json_structure(text)
     if not isinstance(payload, dict) or payload.get("status") != "ok":
         raise ValueError("ChatGPT health check did not return the expected payload")
 
