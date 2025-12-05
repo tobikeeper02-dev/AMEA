@@ -1,127 +1,188 @@
-"""Straightforward market analysis pipeline using ChatGPT.
-
-The goal is reliability over sophistication: the functions below gather engagement
-inputs, query ChatGPT for tailored insights, and assemble a simple structure for the
-Streamlit UI to render.
-"""
+"""High level orchestration for the AMEA market analysis pipeline."""
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Dict, List, Optional
+import logging
+from dataclasses import dataclass
+from typing import Dict, List
 
-from .research.llm import ChatGPTConfig, ChatGPTNotConfiguredError, run_completion
+from .analysis.scoring import ScoreBreakdown
+from .research.llm import (
+    ChatGPTNotConfiguredError,
+    generate_company_market_brief,
+    generate_market_snapshot,
+)
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
-class MarketResult:
+class MarketAnalysisResult:
     country: str
-    summary: str
-    recommendations: List[str] = field(default_factory=list)
-    pestel: Dict[str, List[str]] = field(default_factory=dict)
-    sources: List[str] = field(default_factory=list)
+    pestel: Dict[str, List[str]]
+    score: ScoreBreakdown
+    news: List[str]
+    entry_mode: str
+    turnaround_actions: Dict[str, str]
+    sources: List[str]
 
 
 @dataclass
-class AnalysisResult:
+class ComparativeAnalysis:
     company: str
     industry: str
-    priorities: List[str]
-    company_brief: str
-    markets: List[MarketResult]
+    priorities: Dict[str, float]
+    use_case: str
+    markets: List[MarketAnalysisResult]
+    company_brief: Dict[str, object]
+
+    def best_market(self) -> MarketAnalysisResult | None:
+        if not self.markets:
+            return None
+        return max(self.markets, key=lambda market: market.score.composite)
 
 
-def _pestel_prompt(company: str, industry: str, country: str, priorities: List[str]) -> str:
-    priority_text = ", ".join(priorities) if priorities else "general growth"
-    return (
-        "You are a consulting analyst. Write JSON with keys `summary`, `pestel`, "
-        "`recommendations`, and `sources`. `pestel` should contain arrays for "
-        "Political, Economic, Social, Technological, Environmental, and Legal. Each bullet "
-        "must reflect the company and industry context. Use current, realistic factors. "
-        "Country: "
-        f"{country}. Company: {company}. Industry: {industry}. Priorities: {priority_text}."
-    )
+PRIORITY_MAP = {
+    "Growth potential": "growth",
+    "Cost efficiency": "cost_efficiency",
+    "Risk mitigation": "risk",
+    "Sustainability": "sustainability",
+    "Digital acceleration": "digital",
+}
 
 
-def generate_company_brief(config: ChatGPTConfig, company: str, industry: str) -> str:
-    prompt = (
-        f"Provide a 3-sentence overview of {company} in the {industry} space, including "
-        "customer needs and competitive posture."
-    )
-    try:
-        return run_completion(
-            config,
-            prompt,
-            system="You craft concise, factual company briefs.",
-        )
-    except ChatGPTNotConfiguredError:
-        raise
-    except Exception as exc:  # noqa: BLE001
-        return f"Unable to retrieve company brief: {exc}"
+def _parse_priorities(priority_input: List[str]) -> Dict[str, float]:
+    weights = {PRIORITY_MAP.get(item, item): 1.0 for item in priority_input}
+    if not weights:
+        weights = {"growth": 1.0, "risk": 1.0}
+    return weights
 
 
-def _safe_parse_list(value: Optional[str]) -> List[str]:
-    if not value:
+def _sanitize_pestel(payload: Dict[str, object]) -> Dict[str, List[str]]:
+    result: Dict[str, List[str]] = {}
+    for dimension in ["Political", "Economic", "Social", "Technological", "Environmental", "Legal"]:
+        value = payload.get(dimension) or payload.get(dimension.lower()) if isinstance(payload, dict) else None
+        bullets: List[str] = []
+        if isinstance(value, list):
+            bullets = [str(item).strip() for item in value if str(item).strip()]
+        elif isinstance(value, str):
+            bullets = [value.strip()] if value.strip() else []
+        result[dimension] = bullets
+    return result
+
+
+def _sanitize_turnaround_actions(raw: object) -> Dict[str, str]:
+    if not isinstance(raw, dict):
+        return {}
+    sanitized: Dict[str, str] = {}
+    for key, value in raw.items():
+        if value is None:
+            continue
+        text = str(value).strip()
+        if text:
+            sanitized[str(key)] = text
+    return sanitized
+
+
+def _sanitize_sources(raw: object) -> List[str]:
+    if not raw:
         return []
-    parts = [part.strip(" -\n") for part in value.split("\n") if part.strip()]
-    return parts
+    if isinstance(raw, str):
+        cleaned = raw.strip()
+        return [cleaned] if cleaned else []
+    if isinstance(raw, list):
+        sources: List[str] = []
+        for item in raw:
+            if item is None:
+                continue
+            cleaned = str(item).strip()
+            if cleaned:
+                sources.append(cleaned)
+        return sources
+    return []
 
 
-def generate_market_result(
-    config: ChatGPTConfig, company: str, industry: str, country: str, priorities: List[str]
-) -> MarketResult:
-    prompt = _pestel_prompt(company, industry, country, priorities)
-    try:
-        raw = run_completion(
-            config,
-            prompt,
-            system=(
-                "Return valid JSON. Keep bullets short and relevant. "
-                "Use real-world signals; avoid placeholders."
-            ),
-        )
-    except ChatGPTNotConfiguredError:
-        raise
-    except Exception as exc:  # noqa: BLE001
-        return MarketResult(country=country, summary=f"ChatGPT request failed: {exc}")
-
-    try:
-        import json
-
-        parsed = json.loads(raw)
-    except Exception:
-        return MarketResult(
-            country=country,
-            summary="ChatGPT did not return valid JSON.",
-            recommendations=_safe_parse_list(raw),
-        )
-
-    pestel = {k: _safe_parse_list(v) if isinstance(v, str) else v for k, v in parsed.get("pestel", {}).items()}
-    return MarketResult(
-        country=country,
-        summary=parsed.get("summary", ""),
-        recommendations=parsed.get("recommendations", []),
-        pestel=pestel,
-        sources=parsed.get("sources", []),
-    )
+def _sanitize_news(raw: object) -> List[str]:
+    if not raw:
+        return []
+    if isinstance(raw, str):
+        cleaned = raw.strip()
+        return [cleaned] if cleaned else []
+    if isinstance(raw, list):
+        headlines: List[str] = []
+        for item in raw:
+            if item is None:
+                continue
+            cleaned = str(item).strip()
+            if cleaned:
+                headlines.append(cleaned)
+        return headlines
+    return []
 
 
-def generate_analysis(
-    config: ChatGPTConfig,
-    *,
+def generate_market_analysis(
     company: str,
     industry: str,
+    use_case: str,
     markets: List[str],
     priorities: List[str],
-) -> AnalysisResult:
-    brief = generate_company_brief(config, company, industry)
-    market_results = [
-        generate_market_result(config, company, industry, country, priorities) for country in markets
-    ]
-    return AnalysisResult(
+) -> ComparativeAnalysis:
+    weights = _parse_priorities(priorities)
+
+    company_brief = generate_company_market_brief(
         company=company,
         industry=industry,
-        priorities=priorities,
-        company_brief=brief,
-        markets=market_results,
+        use_case=use_case,
+        priorities=weights,
     )
 
+    results: List[MarketAnalysisResult] = []
+    for market in markets:
+        if not market:
+            continue
+        try:
+            snapshot = generate_market_snapshot(
+                country=market,
+                company=company,
+                industry=industry,
+                use_case=use_case,
+                priorities=weights,
+                company_brief=company_brief,
+            )
+        except ChatGPTNotConfiguredError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - provide context for debugging
+            raise RuntimeError(f"Failed to generate ChatGPT snapshot for {market}: {exc}") from exc
+
+        pestel_payload = snapshot.get("pestel") if isinstance(snapshot, dict) else {}
+        scores_payload = snapshot.get("scores") if isinstance(snapshot, dict) else {}
+
+        score = ScoreBreakdown.from_payload(scores_payload if isinstance(scores_payload, dict) else {})
+        news = _sanitize_news(snapshot.get("recent_signals"))
+        entry_mode = str(snapshot.get("entry_mode") or "").strip()
+        turnaround = _sanitize_turnaround_actions(snapshot.get("turnaround_actions"))
+        sources = _sanitize_sources(snapshot.get("sources"))
+
+        results.append(
+            MarketAnalysisResult(
+                country=market,
+                pestel=_sanitize_pestel(pestel_payload if isinstance(pestel_payload, dict) else {}),
+                score=score,
+                news=news,
+                entry_mode=entry_mode,
+                turnaround_actions=turnaround,
+                sources=sources,
+            )
+        )
+
+    return ComparativeAnalysis(
+        company=company,
+        industry=industry,
+        priorities=weights,
+        use_case=use_case,
+        markets=results,
+        company_brief=company_brief,
+    )
+
+
+__all__ = ["MarketAnalysisResult", "ComparativeAnalysis", "generate_market_analysis"]
