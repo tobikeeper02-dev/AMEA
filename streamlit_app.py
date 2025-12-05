@@ -8,6 +8,41 @@ from typing import List
 
 import sys
 
+
+def _sanitize_numpy_source_paths() -> None:
+    """Remove numpy source-tree entries from sys.path to avoid ImportErrors.
+
+    Some environments accidentally include a local ``numpy`` checkout on the
+    module search path, which causes ``pandas`` (and transitively ``numpy``)
+    imports to fail with the "do not import from the source tree" error. By
+    pruning those entries before importing third-party packages, we keep the
+    Streamlit app resilient even if a user launches it from an unexpected
+    working directory.
+    """
+
+    removable: list[str] = []
+    for entry in list(sys.path):
+        try:
+            base = Path(entry or ".").resolve()
+        except OSError:
+            continue
+
+        numpy_dir = base / "numpy"
+        if numpy_dir.is_dir() and (numpy_dir / "setup.py").exists():
+            removable.append(entry)
+
+        if base.name == "numpy" and (base / "setup.py").exists():
+            removable.append(entry)
+
+    for entry in removable:
+        try:
+            sys.path.remove(entry)
+        except ValueError:
+            continue
+
+
+_sanitize_numpy_source_paths()
+
 import pandas as pd
 import plotly.express as px
 import streamlit as st

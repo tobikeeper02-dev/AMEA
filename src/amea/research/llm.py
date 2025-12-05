@@ -231,6 +231,7 @@ def _request_kwargs(model: str) -> Dict[str, Any]:
 def _request_kwargs(model: str, *, force_json: bool = False, **_: Any) -> Dict[str, Any]:
     """Backward-compatible wrapper to avoid unexpected keyword errors."""
 
+    # Explicitly delegate to the builder to avoid indentation or parsing issues
     return _build_response_kwargs(model, json_object=force_json)
 
 
