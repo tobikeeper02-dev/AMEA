@@ -158,6 +158,18 @@ def _response_text(response: Any) -> str:
         return ""
 
     text = _get(response, "output_text")
+    if isinstance(text, str) and text.strip():
+        return text
+
+    # Some Responses payloads expose a structured "parsed" field; prefer it if present.
+    for output in _get(response, "output", []) or []:
+        parsed = _get(output, "parsed")
+        if parsed:
+            try:
+                return json.dumps(parsed, ensure_ascii=False)
+            except Exception:  # noqa: BLE001 - fallback to string coercion
+                return str(parsed)
+
     if response is None:
         return ""
 
@@ -185,6 +197,10 @@ def _response_text(response: Any) -> str:
     # Fall back to any top-level text-like payload
     for candidate in ("message", "text", "content"):
         parts.extend(_coerce_text(_get(response, candidate)))
+    return "".join(parts)
+
+
+def _request_kwargs(model: str, *, force_json: bool = False) -> Dict[str, Any]:
     for output in getattr(response, "output", []) or []:
         output_type = getattr(output, "type", None)
         if output_type != "output_text":
@@ -205,6 +221,8 @@ def _request_kwargs(model: str) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"model": model}
     if _supports_temperature(model):
         kwargs["temperature"] = _get_temperature()
+    if force_json:
+        kwargs["response_format"] = {"type": "json_object"}
     return kwargs
 
 
@@ -213,6 +231,27 @@ def is_chatgpt_configured() -> bool:
 
     return bool(_resolve_config_value("OPENAI_API_KEY", session_key=SESSION_API_KEY))
 
+
+def _extract_json_structure(text: str, *, response: Any | None = None) -> object:
+    """Attempt to parse JSON from a model response."""
+
+    def _get(obj: Any, key: str, default: Any = None) -> Any:
+        if obj is None:
+            return default
+        if isinstance(obj, Mapping):
+            return obj.get(key, default)
+        return getattr(obj, key, default)
+
+    # Prefer structured JSON payloads when the Responses API returns parsed content.
+    if response is not None:
+        for output in _get(response, "output", []) or []:
+            parsed = _get(output, "parsed")
+            if parsed is not None:
+                return parsed
+            for content in _get(output, "content", []) or []:
+                parsed = _get(content, "parsed")
+                if parsed is not None:
+                    return parsed
 
 def _extract_json_structure(text: str) -> object:
     """Attempt to parse JSON from a model response."""
@@ -297,6 +336,7 @@ def generate_company_market_brief(
     response = client.responses.create(
         input=prompt,
         max_output_tokens=900,
+        **_request_kwargs(model, force_json=True),
         **_request_kwargs(model),
     )
 
@@ -304,6 +344,7 @@ def generate_company_market_brief(
     if not text:
         raise ValueError("ChatGPT returned an empty payload for company briefing")
 
+    raw = _extract_json_structure(text, response=response)
     raw = _extract_json_structure(text)
     if not isinstance(raw, dict):
         raise ValueError("ChatGPT company briefing response was not a JSON object")
@@ -384,6 +425,7 @@ def generate_market_snapshot(
     response = client.responses.create(
         input=prompt,
         max_output_tokens=1600,
+        **_request_kwargs(model, force_json=True),
         **_request_kwargs(model),
     )
 
@@ -391,6 +433,7 @@ def generate_market_snapshot(
     if not text:
         raise ValueError("ChatGPT returned an empty payload for market snapshot")
 
+    raw = _extract_json_structure(text, response=response)
     raw = _extract_json_structure(text)
     if not isinstance(raw, dict):
         raise ValueError("ChatGPT market snapshot response was not a JSON object")
@@ -404,6 +447,7 @@ def run_chatgpt_healthcheck() -> Dict[str, Any]:
     start = time.perf_counter()
     client = _client()
     model = _model_name()
+    request_kwargs = _request_kwargs(model, force_json=True)
     request_kwargs = _request_kwargs(model)
     if _supports_temperature(model):
         request_kwargs["temperature"] = 0.0
@@ -414,6 +458,7 @@ def run_chatgpt_healthcheck() -> Dict[str, Any]:
     )
     latency_ms = (time.perf_counter() - start) * 1000
     text = _response_text(response)
+    payload = _extract_json_structure(text, response=response)
     payload = _extract_json_structure(text)
     if not isinstance(payload, dict) or payload.get("status") != "ok":
         raise ValueError("ChatGPT health check did not return the expected payload")
