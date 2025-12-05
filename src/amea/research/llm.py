@@ -200,6 +200,7 @@ def _response_text(response: Any) -> str:
     return "".join(parts)
 
 
+def _build_response_kwargs(model: str, *, json_object: bool = False) -> Dict[str, Any]:
 def _request_kwargs(model: str, *, force_json: bool = False) -> Dict[str, Any]:
     for output in getattr(response, "output", []) or []:
         output_type = getattr(output, "type", None)
@@ -221,9 +222,16 @@ def _request_kwargs(model: str) -> Dict[str, Any]:
     kwargs: Dict[str, Any] = {"model": model}
     if _supports_temperature(model):
         kwargs["temperature"] = _get_temperature()
+    if json_object:
     if force_json:
         kwargs["response_format"] = {"type": "json_object"}
     return kwargs
+
+
+def _request_kwargs(model: str, *, force_json: bool = False, **_: Any) -> Dict[str, Any]:
+    """Backward-compatible wrapper to avoid unexpected keyword errors."""
+
+    return _build_response_kwargs(model, json_object=force_json)
 
 
 def is_chatgpt_configured() -> bool:
@@ -396,7 +404,7 @@ def generate_market_snapshot(
 
     prompt = (
         "You are AMEA, an AI consultant building a market entry pack.\n"
-        "Leverage domain knowledge, recent macro trends (through 2024), and logical inference to draft country-specific insights.\n"
+        "Leverage domain knowledge, recent macro trends (through 2025), and logical inference to draft country-specific insights.\n"
         "Do NOT reuse canned or placeholder text—tailor every point to the company, industry, and country.\n"
         "If concrete datapoints are uncertain, note the assumption explicitly rather than fabricating figures.\n"
         "Return STRICT JSON with this structure:\n"
