@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+"""Minimal Streamlit front end for AMEA."""
 """Minimal Streamlit front end for AMEA."""
 from __future__ import annotations
 
