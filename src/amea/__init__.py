@@ -1,3 +1,8 @@
-"""AMEA core package."""
+"""Core package for the AMEA market analysis assistant."""
 
-__all__ = ["pipeline", "research"]
+__all__ = [
+    "analysis",
+    "pipeline",
+    "report",
+    "research",
+]
