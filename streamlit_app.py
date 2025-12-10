@@ -106,8 +106,6 @@ def main() -> None:
         else:
             _render_market_cards(result)
 """Streamlit front-end for the AMEA market analysis assistant."""
-from __future__ import annotations
-
 import os
 from io import BytesIO
 from pathlib import Path
