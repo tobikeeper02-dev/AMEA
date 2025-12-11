@@ -1,3 +1,4 @@
+"""ChatGPT-only market analysis pipeline."""
 """Market analysis pipeline that relies entirely on ChatGPT."""
 from __future__ import annotations
 
