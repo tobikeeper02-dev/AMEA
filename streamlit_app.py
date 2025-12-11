@@ -3,11 +3,17 @@
 from typing import List
 import sys
 from pathlib import Path
+import importlib.util
 
 
 def _insert_repo_paths() -> None:
     """Ensure the in-repo package is importable even when not installed."""
     current = Path(__file__).resolve().parent
+    roots = [current] + list(current.parents)
+    candidates = []
+    for root in roots:
+        candidates.extend([root, root / "src"])
+
     candidates = [current, current / "src", current.parent / "src"]
     for path in candidates:
         if path.exists():
@@ -16,6 +22,21 @@ def _insert_repo_paths() -> None:
                 sys.path.insert(0, as_str)
 
 
+def _ensure_repo_importable() -> None:
+    """Stop early with actionable guidance if the package still cannot be found."""
+    _insert_repo_paths()
+    spec = importlib.util.find_spec("amea")
+    if spec is None:
+        import streamlit as st
+
+        st.error(
+            "Failed to locate the in-repo `amea` package. Run Streamlit from the project root "
+            "and ensure the `src` folder exists."
+        )
+        st.stop()
+
+
+_ensure_repo_importable()
 _insert_repo_paths()
 
 import streamlit as st
