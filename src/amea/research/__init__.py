@@ -1,17 +1,3 @@
-"""LLM utilities for AMEA."""
+"""Research adapters for the AMEA assistant."""
 
-from .llm import (
-    ChatGPTConfig,
-    ChatGPTNotConfiguredError,
-    is_chatgpt_configured,
-    run_completion,
-    run_healthcheck,
-)
-
-__all__ = [
-    "ChatGPTConfig",
-    "ChatGPTNotConfiguredError",
-    "is_chatgpt_configured",
-    "run_completion",
-    "run_healthcheck",
-]
+__all__ = ["llm"]
