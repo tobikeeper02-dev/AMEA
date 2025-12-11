@@ -14,6 +14,7 @@ def _insert_repo_paths() -> None:
     for root in roots:
         candidates.extend([root, root / "src"])
 
+    candidates = [current, current / "src", current.parent / "src"]
     for path in candidates:
         if path.exists():
             as_str = str(path)
@@ -36,6 +37,7 @@ def _ensure_repo_importable() -> None:
 
 
 _ensure_repo_importable()
+_insert_repo_paths()
 
 import streamlit as st
 try:
@@ -164,3 +166,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
