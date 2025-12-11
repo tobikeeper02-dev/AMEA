@@ -15,3 +15,6 @@ __all__ = [
     "run_completion",
     "run_healthcheck",
 ]
+"""Research adapters for the AMEA assistant."""
+
+__all__ = ["llm"]
