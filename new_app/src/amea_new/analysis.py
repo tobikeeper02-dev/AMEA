@@ -1,4 +1,5 @@
 """Pipeline to generate market analysis via ChatGPT."""
+import json
 from dataclasses import dataclass
 from typing import Dict, List
 
@@ -41,23 +42,57 @@ def analyze_request(
 
 
 def _parse_pestel(response_text: str) -> Dict[str, str]:
+    if not response_text.strip():
+        return {}
+
+    json_pestel = _parse_json_block(response_text)
+    if json_pestel:
+        return json_pestel
+
+    return _parse_colon_lines(response_text)
+
+
+def _parse_json_block(response_text: str) -> Dict[str, str]:
+    try:
+        parsed = json.loads(response_text)
+    except json.JSONDecodeError:
+        return {}
+
+    if not isinstance(parsed, dict):
+        return {}
+
+    normalized: Dict[str, str] = {}
+    for key in ["Political", "Economic", "Social", "Technological", "Environmental", "Legal"]:
+        value = parsed.get(key) or parsed.get(key.lower())
+        if isinstance(value, list):
+            value = " ".join(str(item).strip() for item in value if str(item).strip())
+        if isinstance(value, str) and value.strip():
+            normalized[key] = value.strip()
+    return normalized
+
+
+def _parse_colon_lines(response_text: str) -> Dict[str, str]:
     lines = [line.strip() for line in response_text.splitlines() if line.strip()]
     if not lines:
         return {}
+
     data: Dict[str, str] = {}
     for line in lines:
         prefix, sep, rest = line.partition(":")
-        if sep and prefix.lower().startswith("p"):
+        if not sep:
+            continue
+        lower_prefix = prefix.lower()
+        if lower_prefix.startswith("p"):
             data["Political"] = rest.strip()
-        elif sep and prefix.lower().startswith("e"):
-            if "Environmental" in prefix or prefix.lower().startswith("env"):
+        elif lower_prefix.startswith("e"):
+            if "environmental" in lower_prefix:
                 data["Environmental"] = rest.strip()
             else:
                 data.setdefault("Economic", rest.strip())
-        elif sep and prefix.lower().startswith("s"):
+        elif lower_prefix.startswith("s"):
             data["Social"] = rest.strip()
-        elif sep and prefix.lower().startswith("t"):
+        elif lower_prefix.startswith("t"):
             data["Technological"] = rest.strip()
-        elif sep and prefix.lower().startswith("l"):
+        elif lower_prefix.startswith("l"):
             data["Legal"] = rest.strip()
     return data
