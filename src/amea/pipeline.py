@@ -1,4 +1,3 @@
-"""ChatGPT-only market analysis pipeline."""
 """Market analysis pipeline that relies entirely on ChatGPT."""
 from __future__ import annotations
 
@@ -150,7 +149,6 @@ def generate_analysis(
         markets=market_results,
     )
 """High level orchestration for the AMEA market analysis pipeline."""
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
