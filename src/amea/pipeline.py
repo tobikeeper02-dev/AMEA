@@ -160,6 +160,10 @@ def generate_analysis(
         company_brief=brief,
         markets=market_results,
     )
+
+
+# --- Comparative scoring pipeline (used by reports/export) --- #
+
 """High level orchestration for the AMEA market analysis pipeline."""
 
 
