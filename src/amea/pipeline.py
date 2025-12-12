@@ -1,4 +1,5 @@
 """Market analysis pipeline that relies entirely on live ChatGPT responses."""
+"""Market analysis pipeline that relies entirely on ChatGPT."""
 from __future__ import annotations
 
 import json
@@ -159,6 +160,7 @@ def generate_analysis(
         company_brief=brief,
         markets=market_results,
     )
+"""High level orchestration for the AMEA market analysis pipeline."""
 
 
 # --- Comparative scoring pipeline (used by reports/export) --- #
