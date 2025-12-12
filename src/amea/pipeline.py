@@ -1,12 +1,25 @@
+"""Market analysis pipeline that relies entirely on live ChatGPT responses."""
 """Market analysis pipeline that relies entirely on ChatGPT."""
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass, field
 from typing import Dict, List
 
-from .research.llm import ChatGPTConfig, ChatGPTNotConfiguredError, run_completion
+from .analysis.scoring import ScoreBreakdown
+from .research.llm import (
+    ChatGPTConfig,
+    ChatGPTNotConfiguredError,
+    generate_company_market_brief,
+    generate_market_snapshot,
+    run_completion,
+)
 
+LOGGER = logging.getLogger(__name__)
+
+
+# --- Lightweight per-market snapshot pipeline (used by the Streamlit app) --- #
 
 @dataclass
 class MarketResult:
@@ -51,7 +64,6 @@ def _parse_json_block(raw: str) -> Dict[str, object]:
     try:
         return json.loads(raw)
     except Exception:
-        # Try to locate the first JSON object in the text
         start = raw.find("{")
         end = raw.rfind("}")
         if start != -1 and end != -1 and end > start:
@@ -150,19 +162,16 @@ def generate_analysis(
     )
 """High level orchestration for the AMEA market analysis pipeline."""
 
-import logging
-from dataclasses import dataclass
-from typing import Dict, List
 
-from .analysis.scoring import ScoreBreakdown
-from .research.llm import (
-    ChatGPTNotConfiguredError,
-    generate_company_market_brief,
-    generate_market_snapshot,
-)
+# --- Comparative scoring pipeline (used by reports/export) --- #
 
-
-LOGGER = logging.getLogger(__name__)
+PRIORITY_MAP = {
+    "Growth potential": "growth",
+    "Cost efficiency": "cost_efficiency",
+    "Risk mitigation": "risk",
+    "Sustainability": "sustainability",
+    "Digital acceleration": "digital",
+}
 
 
 @dataclass
@@ -189,15 +198,6 @@ class ComparativeAnalysis:
         if not self.markets:
             return None
         return max(self.markets, key=lambda market: market.score.composite)
-
-
-PRIORITY_MAP = {
-    "Growth potential": "growth",
-    "Cost efficiency": "cost_efficiency",
-    "Risk mitigation": "risk",
-    "Sustainability": "sustainability",
-    "Digital acceleration": "digital",
-}
 
 
 def _parse_priorities(priority_input: List[str]) -> Dict[str, float]:
@@ -334,4 +334,13 @@ def generate_market_analysis(
     )
 
 
-__all__ = ["MarketAnalysisResult", "ComparativeAnalysis", "generate_market_analysis"]
+__all__ = [
+    "MarketResult",
+    "AnalysisResult",
+    "MarketAnalysisResult",
+    "ComparativeAnalysis",
+    "generate_company_brief",
+    "generate_market_result",
+    "generate_analysis",
+    "generate_market_analysis",
+]
