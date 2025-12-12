@@ -1,5 +1,5 @@
-"""Utilities to harden sys.path against numpy source-tree collisions."""
 from __future__ import annotations
+"""Utilities to harden sys.path against numpy source-tree collisions."""
 
 import sys
 from pathlib import Path
